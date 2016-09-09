@@ -46,10 +46,10 @@ class TestCases(unittest.TestCase):
         tt = EBoolean(True)
         ff = EBoolean(False)
 
-        assertFalse(EAnd(ff,EInteger(10)).eval().value)
-        assertFalse(EAnd(ff,EInteger(0)).eval().value)
-        assertTrue(EOr(tt,EInteger(10)).eval().value)
-        assertTrue(EOr(tt,EInteger(0)).eval().value)
+        self.assertFalse(EAnd(ff,EInteger(10)).eval().value)
+        self.assertFalse(EAnd(ff,EInteger(0)).eval().value)
+        self.assertTrue(EOr(tt,EInteger(10)).eval().value)
+        self.assertTrue(EOr(tt,EInteger(0)).eval().value)
 
     def test_VVector(self):
         self.assertEqual(VVector([]).length, 0)

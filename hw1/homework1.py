@@ -121,8 +121,8 @@ class EIf (Exp):
 
 class EOr(Exp):
     def __init__(self, e1, e2):
-        self.exp1 = _e1
-        self.exp2 = _e2
+        self._e1 = e1
+        self._e2 = e2
 
     def __str__(self):
         return "EOr({},{})".format(self._e1, self._e2)
@@ -130,10 +130,13 @@ class EOr(Exp):
     def eval(self):
         _v1 = self._e1.eval()
         _v2 = self._e2.eval()
-        if _v1.type != "boolean" or _v2.type != "boolean":
-            raise Exception ("Runtime error: condition not a Boolean")
+        if _v1.type != "boolean":
+            raise Exception ("Runtime error: expression 1 not a Boolean")
         elif _v1.value:
             return VBoolean(True)
+
+        if _v2.type != "boolean":
+            raise Exception ("Runtime error: expression 1 not a Boolean")
         elif _v2.value:
             return VBoolean(True)
         else:
