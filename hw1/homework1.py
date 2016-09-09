@@ -130,7 +130,7 @@ class EOr(Exp):
     def eval(self):
         _v1 = self._e1.eval()
         _v2 = self._e2.eval()
-        if _v1.type not "boolean" or _v2.type not "boolean":
+        if _v1.type != "boolean" or _v2.type != "boolean":
             raise Exception ("Runtime error: condition not a Boolean")
         elif _v1.value:
             return VBoolean(True)
