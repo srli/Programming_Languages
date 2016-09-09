@@ -80,6 +80,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(pair(EPlus(v1,v2).eval()),(35, 69))
         self.assertEqual(pair(EMinus(v1,v2).eval()),(-31, -63))
 
+    def test_vecEAnd(self):
         b1 = EVector([EBoolean(True),EBoolean(False)])
         b2 = EVector([EBoolean(False),EBoolean(False)])
 

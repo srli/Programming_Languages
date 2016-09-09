@@ -196,17 +196,36 @@ class EAnd (Exp):
     def eval(self):
         _v1 = self._exp1.eval()
         _v2 = self._exp2.eval()
+
+        if _v1.type == "vector" and _v2.type == "vector":
+            if _v1.length != _v2.length:
+                raise Exception ("Runtime error: lists not equal length")
+            else:
+                resList = []
+                valLength = _v1.length
+                i = 0
+                while i < valLength:
+                    v3 = _v1.get(i)
+                    v4 = _v2.get(i)
+                    if v3.type == "boolean" and v4.type == "boolean":
+                        resList.append(EAnd(EBoolean(v3.value), EBoolean(v4.value)))
+                    else:
+                        raise Exception("Runtime error: expression is not a Boolean")
+                    i += 1
+                return EVector(resList).eval()
+
         if _v1.type != "boolean":
             raise Exception ("Runtime error: expression 1 not a Boolean")
         elif not _v1.value:
             return VBoolean(False)
 
         if _v2.type != "boolean":
-            raise Exception ("Runtime error: expression w not a Boolean")
+            raise Exception ("Runtime error: expression 2 not a Boolean")
         elif not _v2.value:
             return VBoolean(False)
         else:
             return VBoolean(True)
+
 
 class EOr(Exp):
     def __init__(self, e1, e2):
