@@ -60,7 +60,19 @@ class EPlus (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value + v2.value)
-        raise Exception ("Runtime error: trying to add non-numbers")
+        elif v1.type == "vector" and v2.type == "vector" and v1.length == v2.length:
+            to_return = []
+            for i in range(v1.length):
+                first = v1.get(i)
+                second = v2.get(i)
+                if first.type == "integer" and second.type == "integer":
+                    to_return.append(EInteger(first.value + second.value))
+                else:
+                    raise Exception ("Runtime error: vectors of incompatable types - not integers")
+
+            return EVector(to_return).eval()
+        raise Exception ("Runtime error: trying to subtract non-numbers or vectors of uneven length")
+        raise Exception ("Runtime error: trying to add non-numbers or vectors of uneven length")
 
 
 class EMinus (Exp):
@@ -78,7 +90,18 @@ class EMinus (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value - v2.value)
-        raise Exception ("Runtime error: trying to subtract non-numbers")
+        elif v1.type == "vector" and v2.type == "vector" and v1.length == v2.length:
+            to_return = []
+            for i in range(v1.length):
+                first = v1.get(i)
+                second = v2.get(i)
+                if first.type == "integer" and second.type == "integer":
+                    to_return.append(EInteger(first.value - second.value))
+                else:
+                    raise Exception ("Runtime error: vectors of incompatable types - not integers")
+
+            return EVector(to_return).eval()
+        raise Exception ("Runtime error: trying to subtract non-numbers or vectors of uneven length")
 
 
 class ETimes (Exp):
@@ -256,3 +279,6 @@ class EVector (Exp):
             valList.append(self._vexp[i].eval())
             i += 1
         return VVector(valList)
+
+def pair(v): 
+    return (v.get(0).value, v.get(1).value)

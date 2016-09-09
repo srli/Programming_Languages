@@ -1,6 +1,8 @@
 from homework1 import *
 import unittest
 
+
+
 class TestCases(unittest.TestCase):
 
     def test_EIsZero(self):
@@ -70,6 +72,20 @@ class TestCases(unittest.TestCase):
         self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().length, 2)
         self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(0).value, True)
         self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(1).value, False)
+
+    def test_Vector_simple_math(self):
+        v1 = EVector([EInteger(2),EInteger(3)])
+        v2 = EVector([EInteger(33),EInteger(66)])
+
+        self.assertEqual(pair(EPlus(v1,v2).eval()),(35, 69))
+        self.assertEqual(pair(EMinus(v1,v2).eval()),(-31, -63))
+
+        b1 = EVector([EBoolean(True),EBoolean(False)])
+        b2 = EVector([EBoolean(False),EBoolean(False)])
+
+        self.assertEqual(pair(EAnd(b1,b2).eval()), (False, False))
+        self.assertEqual(pair(EOr(b1,b2).eval()), (True, False))
+        self.assertEqual(pair(ENot(b1).eval()), (False, True))
 
 
 if __name__ == '__main__':
