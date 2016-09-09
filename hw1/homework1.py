@@ -171,8 +171,8 @@ class EAnd (Exp):
         return "EAnd({}, {})".format(self._exp1, self._exp2)
 
     def eval(self):
-        _v1 = self._e1.eval()
-        _v2 = self._e2.eval()
+        _v1 = self._exp1.eval()
+        _v2 = self._exp2.eval()
         if _v1.type != "boolean":
             raise Exception ("Runtime error: expression 1 not a Boolean")
         elif not _v1.value:
