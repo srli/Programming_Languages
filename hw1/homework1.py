@@ -237,7 +237,7 @@ class VVector (Value):
         if n > self.length:
             raise Exception ("Runtime error: N is greater than length of vector")
         else:
-            return VInteger(self._rawData[n])
+            return self._rawData[n]
 
 class EVector (Exp):
     #Takes a list of expressions and evaluates to a vector of the resulting evaluations
