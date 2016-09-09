@@ -71,6 +71,13 @@ class TestCases(unittest.TestCase):
         self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(0).value, True)
         self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(1).value, False)
 
+    def test_vecEAnd(self):
+        def pair (v): return (v.get(0).value,v.get(1).value)
+
+        b1 = EVector([EBoolean(True),EBoolean(False)])
+        b2 = EVector([EBoolean(False),EBoolean(False)])
+
+        self.assertEqual(pair(EAnd(b1,b2).eval()), (False, False))
 
 if __name__ == '__main__':
     unittest.main()
