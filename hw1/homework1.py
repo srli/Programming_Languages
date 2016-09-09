@@ -164,8 +164,8 @@ class EAnd (Exp):
     # Does and operation on two inputs
 
     def __init__(self, e1, e2):
-        self._exp1 = e1
-        self._exp2 = e2
+        self._e1 = e1
+        self._e2 = e2
 
     def __str__(self):
         return "EAnd({}, {})".format(self._exp1, self._exp2)
