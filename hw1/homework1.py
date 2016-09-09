@@ -119,29 +119,6 @@ class EIf (Exp):
         else:
             return self._else.eval()
 
-class EOr(Exp):
-    def __init__(self, e1, e2):
-        self._e1 = e1
-        self._e2 = e2
-
-    def __str__(self):
-        return "EOr({},{})".format(self._e1, self._e2)
-
-    def eval(self):
-        _v1 = self._e1.eval()
-        _v2 = self._e2.eval()
-        if _v1.type != "boolean":
-            raise Exception ("Runtime error: expression 1 not a Boolean")
-        elif _v1.value:
-            return VBoolean(True)
-
-        if _v2.type != "boolean":
-            raise Exception ("Runtime error: expression 1 not a Boolean")
-        elif _v2.value:
-            return VBoolean(True)
-        else:
-            return VBoolean(False)
-
 #
 # Values
 #
@@ -194,17 +171,42 @@ class EAnd (Exp):
         return "EAnd({}, {})".format(self._exp1, self._exp2)
 
     def eval(self):
-        v1 = self._exp1.eval()
-        v2 = self._exp2.eval()
-        if v1.type == "boolean" and v2.type == "boolean":
-            if not v1.value:
-                return VBoolean(False)
-            elif not v2.value:
-                return VBoolean(False)
-            else:
-                return VBoolean(True)
+        _v1 = self._e1.eval()
+        _v2 = self._e2.eval()
+        if _v1.type != "boolean":
+            raise Exception ("Runtime error: expression 1 not a Boolean")
+        elif not _v1.value:
+            return VBoolean(False)
+
+        if _v2.type != "boolean":
+            raise Exception ("Runtime error: expression w not a Boolean")
+        elif not _v2.value:
+            return VBoolean(False)
         else:
-            raise Exception ("Runtime error: condition not a Boolean")
+            return VBoolean(True)
+
+class EOr(Exp):
+    def __init__(self, e1, e2):
+        self._e1 = e1
+        self._e2 = e2
+
+    def __str__(self):
+        return "EOr({},{})".format(self._e1, self._e2)
+
+    def eval(self):
+        _v1 = self._e1.eval()
+        _v2 = self._e2.eval()
+        if _v1.type != "boolean":
+            raise Exception ("Runtime error: expression 1 not a Boolean")
+        elif _v1.value:
+            return VBoolean(True)
+
+        if _v2.type != "boolean":
+            raise Exception ("Runtime error: expression w not a Boolean")
+        elif _v2.value:
+            return VBoolean(True)
+        else:
+            return VBoolean(False)
 
 class ENot(Exp):
     # Does not operation on one input
