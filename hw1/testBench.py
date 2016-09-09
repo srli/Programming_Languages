@@ -58,5 +58,19 @@ class TestCases(unittest.TestCase):
         self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(1).value, 20)
         self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(2).value, 30)
 
+    def test_EVector(self):
+        self.assertEqual(EVector([]).eval().length, 0)
+        self.assertEqual(EVector([EInteger(10),EInteger(20),EInteger(30)]).eval().length, 3)
+        self.assertEqual(EVector([EInteger(10),EInteger(20),EInteger(30)]).eval().get(0).value, 10)
+        self.assertEqual(EVector([EInteger(10),EInteger(20),EInteger(30)]).eval().get(1).value, 20)
+        self.assertEqual(EVector([EInteger(10),EInteger(20),EInteger(30)]).eval().get(2).value, 30)
+        self.assertEqual(EVector([EPlus(EInteger(1),EInteger(2)),EInteger(0)]).eval().length, 2)
+        self.assertEqual(EVector([EPlus(EInteger(1),EInteger(2)),EInteger(0)]).eval().get(0).value, 3)
+        self.assertEqual(EVector([EPlus(EInteger(1),EInteger(2)),EInteger(0)]).eval().get(1).value, 0)
+        self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().length, 2)
+        self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(0).value, True)
+        self.assertEqual(EVector([EBoolean(True),EAnd(EBoolean(True),EBoolean(False))]).eval().get(1).value, False)
+
+
 if __name__ == '__main__':
     unittest.main()
