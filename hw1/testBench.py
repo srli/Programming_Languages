@@ -51,6 +51,14 @@ class TestCases(unittest.TestCase):
         assertTrue(EOr(tt,EInteger(10)).eval().value)
         assertTrue(EOr(tt,EInteger(0)).eval().value)
 
+    def test_VVector(self):
+        self.assertEqual(VVector([]).length, 0)
+        self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).length, 3)
+        self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(0).value, 10)
+        self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(1).value, 20)
+        self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(2).value, 30)
+
+
 
 if __name__ == '__main__':
     unittest.main()
