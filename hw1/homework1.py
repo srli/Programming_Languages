@@ -3,7 +3,7 @@
 #
 # Team members: Sophie and Lindsey
 #
-# Emails:
+# Emails: lindsey.vanderlyn@students.olin.edu and sophie.li@students.olin.edu
 #
 # Remarks:
 #
@@ -118,6 +118,26 @@ class EIf (Exp):
             return self._then.eval()
         else:
             return self._else.eval()
+
+class EOr(Exp):
+    def __init__(self, e1, e2):
+        self.exp1 = _e1
+        self.exp2 = _e2
+
+    def __str__(self):
+        return "EOr({},{})".format(self._e1, self._e2)
+
+    def eval(self):
+        _v1 = self._e1.eval()
+        _v2 = self._e2.eval()
+        if _v1.type not "boolean" or _v2.type not "boolean":
+            raise Exception ("Runtime error: condition not a Boolean")
+        elif _v1.value:
+            return VBoolean(True)
+        elif _v2.value:
+            return VBoolean(True)
+        else:
+            return VBoolean(False)
 
 #
 # Values
