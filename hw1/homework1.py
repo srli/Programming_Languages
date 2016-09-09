@@ -225,6 +225,7 @@ class ENot(Exp):
 #Question 2
 class VVector (Value):
     # Value representation of integers
+
     def __init__ (self,i):
         self._rawData = i
         self.length = len(i)
@@ -245,3 +246,11 @@ class EVector (Exp):
     def __str__(self):
         return "EVector({})".format(self._vexp)
 
+    def eval(self):
+        expLen = self._vexp.length
+        valList = []
+        i = 0
+        while i < expLen:
+            valList.append(self._vexp.get(i).eval())
+            i++
+        return VVector(valList)
