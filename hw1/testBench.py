@@ -58,7 +58,5 @@ class TestCases(unittest.TestCase):
         self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(1).value, 20)
         self.assertEqual(VVector([VInteger(10),VInteger(20),VInteger(30)]).get(2).value, 30)
 
-
-
 if __name__ == '__main__':
     unittest.main()

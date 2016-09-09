@@ -252,5 +252,5 @@ class EVector (Exp):
         i = 0
         while i < expLen:
             valList.append(self._vexp.get(i).eval())
-            i++
+            i += 1
         return VVector(valList)
