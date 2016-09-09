@@ -160,18 +160,85 @@ class VBoolean (Value):
         self.type = "boolean"
 
 
+#HOMEWORK ANSWERS START HERE
+# ------------- #
+
+#Question 1
 class EIsZero (Exp):
     # Checks if input is 0
-    
+
     def __init__(self, e1):
-        self._value = e1
-        
+        self._exp = e1
+
     def __str__(self):
-        return "EIsZero({})".format(self._value)
-    
+        return "EIsZero({})".format(self._exp)
+
     def eval(self):
-        if self._value == 0:
+        v1 = self._exp.eval()
+        if v1.value == 0:
             return VBoolean(True)
         else:
             return VBoolean(False)
-            
+
+class EAnd (Exp):
+    # Does and operation on two inputs
+
+    def __init__(self, e1, e2):
+        self._exp1 = e1
+        self._exp2 = e2
+
+    def __str__(self):
+        return "EAnd({}, {})".format(self._exp1, self._exp2)
+
+    def eval(self):
+        v1 = self._exp1.eval()
+        v2 = self._exp2.eval()
+        if v1.type == "boolean" and v2.type == "boolean":
+            if not v1.value:
+                return VBoolean(False)
+            elif not v2.value:
+                return VBoolean(False)
+            else:
+                return VBoolean(True)
+        else:
+            raise Exception ("Runtime error: condition not a Boolean")
+
+class ENot(Exp):
+    # Does not operation on one input
+
+    def __init__(self, e1):
+        self._exp = e1
+
+    def __str__(self):
+        return "ENot({})".format(self._exp)
+
+    def eval(self):
+        v1 = self._exp.eval()
+        if v1.type == "boolean":
+            return VBoolean(not v1.value)
+        else:
+            raise Exception ("Runtime error: condition not a Boolean")
+
+#Question 2
+class VVector (Value):
+    # Value representation of integers
+    def __init__ (self,i):
+        self._rawData = i
+        self.length = len(i)
+        self.type = "vector"
+
+    def get(self, n):
+        if n > self.length:
+            raise Exception ("Runtime error: N is greater than length of vector")
+        else:
+            return VInteger(self._rawData[n])
+
+class EVector (Exp):
+    #Takes a list of expressions and evaluates to a vector of the resulting evaluations
+
+    def __init__(self, vexp):
+        self._vexp = vexp
+
+    def __str__(self):
+        return "EVector({})".format(self._vexp)
+
