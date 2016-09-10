@@ -88,6 +88,62 @@ class TestCases(unittest.TestCase):
         self.assertEqual(pair(EOr(b1,b2).eval()), (True, False))
         self.assertEqual(pair(ENot(b1).eval()), (False, True))
 
+    def test_ETimes(self):
+        v1 = EVector([EInteger(2),EInteger(3)])
+        v2 = EVector([EInteger(33),EInteger(66)])
+
+        self.assertEqual(ETimes(v1,v2).eval().value, 264)
+        self.assertEqual(ETimes(v1,EPlus(v2,v2)).eval().value, 528)
+        self.assertEqual(ETimes(v1,EMinus(v2,v2)).eval().value, 0)
+
+    def test_vector_scalar_math(self):
+        v1 = EVector([EInteger(2),EInteger(3)])
+        v2 = EVector([EInteger(33),EInteger(66)])
+
+        self.assertEqual(pair(EPlus(v1,EInteger(100)).eval()), (102, 103))
+        self.assertEqual(pair(EPlus(EInteger(100),v1).eval()), (102, 103))
+        self.assertEqual(pair(EMinus(v1,EInteger(100)).eval()), (-98, -97))
+        self.assertEqual(pair(EMinus(EInteger(100),v1).eval()), (98, 97))
+        self.assertEqual(pair(ETimes(v1,EInteger(100)).eval()), (200, 300))
+        self.assertEqual(pair(ETimes(EInteger(100),v1).eval()), (200, 300))
+
+        # self.assertEqual(pair(EAnd(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, False))
+        # self.assertEqual(pair(EOr(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, True))
+
+    # def test_VRational(self):
+    #     self.assertEqual(VRational(1,3).numer, 1)
+    #     self.assertEqual(VRational(1,3).denom, 3)
+    #     self.assertEqual(VRational(2,3).numer, 2)
+    #     self.assertEqual(VRational(2,3).denom, 3)
+
+    # def test_EDiv(self):
+    #     self.assertEqual(rat(EDiv(EInteger(1),EInteger(2)).eval()), '1/2')
+    #     self.assertEqual(rat(EDiv(EInteger(2),EInteger(3)).eval()), '2/3')
+    #     self.assertEqual(rat(EDiv(EDiv(EInteger(2),EInteger(3)),EInteger(4)).eval()), '1/6')
+    #     self.assertEqual(rat(EDiv(EInteger(2),EDiv(EInteger(3),EInteger(4))).eval()), '8/3')
+
+    # def test_rational_math(self):
+    #     half = EDiv(EInteger(1),EInteger(2))
+    #     third = EDiv(EInteger(1),EInteger(3))
+
+    #     self.assertEqual(rat(EPlus(half,third).eval()), '5/6')
+    #     self.assertEqual(rat(EPlus(half,EInteger(1)).eval()), '3/2')
+    #     self.assertEqual(rat(EMinus(half,third).eval()), '1/6')
+    #     self.assertEqual(rat(EMinus(half,EInteger(1)).eval()), '-1/2')
+    #     self.assertEqual(rat(ETimes(half,third).eval()), '1/6')
+    #     self.assertEqual(rat(ETimes(half,EInteger(1)).eval()), '1/2')
+
+    # def test_simplest_form(self):
+    #     self.assertEqual(rat(EDiv(EInteger(3),EInteger(6)).eval()), '1/2')
+    #     self.assertEqual(rat(EDiv(EInteger(4),EInteger(6)).eval()), '2/3')
+    #     self.assertEqual(rat(EDiv(EInteger(-4),EInteger(6)).eval()), '-2/3')
+    #     self.assertEqual(rat(EDiv(EInteger(-4),EInteger(-6)).eval()), '2/3')
+
+    #     self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval(), <__main__.VInteger object at 0x100f5e590>)
+    #     self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval().value, 2)
+    #     self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval(), <__main__.VInteger object at 0x100f5e650>)
+    #     self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval().value, 2 )
+
 
 if __name__ == '__main__':
     unittest.main()

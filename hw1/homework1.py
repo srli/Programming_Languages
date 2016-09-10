@@ -60,19 +60,23 @@ class EPlus (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value + v2.value)
-        elif v1.type == "vector" and v2.type == "vector" and v1.length == v2.length:
+        elif v1.type == "vector" or v2.type == "vector":
+            v1_vec = v1.type == "vector"
+            v2_vec = v2.type == "vector"
+            if v1_vec and v2_vec and v1.length != v2.length:
+                raise Exception("Runtime error: vectors of unequal length")
             to_return = []
-            for i in range(v1.length):
-                first = v1.get(i)
-                second = v2.get(i)
+            length = v1.length if v1_vec else v2.length 
+            for i in range(length):
+                first = v1.get(i) if v1_vec else v1
+                second = v2.get(i) if v2_vec else v2 
                 if first.type == "integer" and second.type == "integer":
-                    to_return.append(EInteger(first.value + second.value))
+                    to_return.append(VInteger(first.value + second.value))
                 else:
                     raise Exception ("Runtime error: vectors of incompatable types - not integers")
 
-            return EVector(to_return).eval()
-        raise Exception ("Runtime error: trying to subtract non-numbers or vectors of uneven length")
-        raise Exception ("Runtime error: trying to add non-numbers or vectors of uneven length")
+            return VVector(to_return)
+        raise Exception ("Runtime error: trying to add non-numbers")
 
 
 class EMinus (Exp):
@@ -90,18 +94,23 @@ class EMinus (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value - v2.value)
-        elif v1.type == "vector" and v2.type == "vector" and v1.length == v2.length:
+        elif v1.type == "vector" or v2.type == "vector":
+            v1_vec = v1.type == "vector"
+            v2_vec = v2.type == "vector"
+            if v1_vec and v2_vec and v1.length != v2.length:
+                raise Exception("Runtime error: vectors of unequal length")
             to_return = []
-            for i in range(v1.length):
-                first = v1.get(i)
-                second = v2.get(i)
+            length = v1.length if v1_vec else v2.length 
+            for i in range(length):
+                first = v1.get(i) if v1_vec else v1
+                second = v2.get(i) if v2_vec else v2 
                 if first.type == "integer" and second.type == "integer":
-                    to_return.append(EInteger(first.value - second.value))
+                    to_return.append(VInteger(first.value - second.value))
                 else:
                     raise Exception ("Runtime error: vectors of incompatable types - not integers")
 
-            return EVector(to_return).eval()
-        raise Exception ("Runtime error: trying to subtract non-numbers or vectors of uneven length")
+            return VVector(to_return)
+        raise Exception ("Runtime error: trying to subtract non-numbers")
 
 
 class ETimes (Exp):
@@ -119,6 +128,25 @@ class ETimes (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value * v2.value)
+        elif v1.type == "vector" or v2.type == "vector":
+            v1_vec = v1.type == "vector"
+            v2_vec = v2.type == "vector"
+            if v1_vec and v2_vec and v1.length != v2.length:
+                raise Exception("Runtime error: vectors of unequal length")
+            to_return = []
+            length = v1.length if v1_vec else v2.length 
+            v_sum = 0
+            for i in range(length):
+                first = v1.get(i) if v1_vec else v1
+                second = v2.get(i) if v2_vec else v2 
+                if first.type == "integer" and second.type == "integer":
+                    product = first.value * second.value
+                    to_return.append(VInteger(product))
+                    v_sum += product
+                else:
+                    raise Exception ("Runtime error: vectors of incompatable types - not integers")
+
+            return VVector(to_return) if v1_vec != v2_vec else VInteger(v_sum)
         raise Exception ("Runtime error: trying to multiply non-numbers")
 
 
@@ -301,3 +329,6 @@ class EVector (Exp):
 
 def pair(v): 
     return (v.get(0).value, v.get(1).value)
+
+def rat (v): 
+    return "{}/{}".format(v.numer,v.denom)
