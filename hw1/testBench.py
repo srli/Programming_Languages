@@ -116,11 +116,11 @@ class TestCases(unittest.TestCase):
         self.assertEqual(VRational(2,3).numer, 2)
         self.assertEqual(VRational(2,3).denom, 3)
 
-    # def test_EDiv(self):
-    #     self.assertEqual(rat(EDiv(EInteger(1),EInteger(2)).eval()), '1/2')
-    #     self.assertEqual(rat(EDiv(EInteger(2),EInteger(3)).eval()), '2/3')
-    #     self.assertEqual(rat(EDiv(EDiv(EInteger(2),EInteger(3)),EInteger(4)).eval()), '1/6')
-    #     self.assertEqual(rat(EDiv(EInteger(2),EDiv(EInteger(3),EInteger(4))).eval()), '8/3')
+    def test_EDiv(self):
+        self.assertEqual(rat(EDiv(EInteger(1),EInteger(2)).eval()), '1/2')
+        self.assertEqual(rat(EDiv(EInteger(2),EInteger(3)).eval()), '2/3')
+        self.assertEqual(rat(EDiv(EDiv(EInteger(2),EInteger(3)),EInteger(4)).eval()), '1/6')
+        self.assertEqual(rat(EDiv(EInteger(2),EDiv(EInteger(3),EInteger(4))).eval()), '8/3')
 
     # def test_rational_math(self):
     #     half = EDiv(EInteger(1),EInteger(2))

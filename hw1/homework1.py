@@ -50,7 +50,7 @@ class ERational(Exp):
 
     def __init__(self, n, d):
         self._numer = n
-        self._denom = d 
+        self._denom = d
 
     def __str__(self):
         return "ERational{}/{}".format(self._numer, self._denom)
@@ -403,3 +403,41 @@ def pair(v):
 
 def rat (v):
     return "{}/{}".format(v.numer,v.denom)
+
+#Question 3
+class EDiv (Exp):
+
+    def __init__(self, exp1, exp2):
+        self._exp1 = exp1
+        self._exp2 = exp2
+
+    def __str__(self):
+        return "EDiv({}, {})".format(self._exp1, self._exp2)
+
+    def eval(self):
+        v1 = self._exp1.eval()
+        v2 = self._exp2.eval()
+
+        if v1.type == "integer":
+            num1 = v1.value
+            denom1 = 1
+        elif v1.type == "rational":
+            num1 = v1.numer
+            denom1 = v1.denom
+
+        if v2.type == "integer":
+            num2 = v2.value
+            denom2 = 1
+        elif v2.type == "rational":
+            num2 = v2.numer
+            denom2 = v2.denom
+
+
+        numRes = num1*denom2
+        denomRes = denom1*num2
+
+        i = numRes
+        while i > 0:
+            if (numRes % i == 0) and (denomRes % i == 0):
+                return VRational(numRes/i, denomRes/i)
+            i -= 1
