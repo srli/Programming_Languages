@@ -110,11 +110,11 @@ class TestCases(unittest.TestCase):
         # self.assertEqual(pair(EAnd(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, False))
         # self.assertEqual(pair(EOr(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, True))
 
-    # def test_VRational(self):
-    #     self.assertEqual(VRational(1,3).numer, 1)
-    #     self.assertEqual(VRational(1,3).denom, 3)
-    #     self.assertEqual(VRational(2,3).numer, 2)
-    #     self.assertEqual(VRational(2,3).denom, 3)
+    def test_VRational(self):
+        self.assertEqual(VRational(1,3).numer, 1)
+        self.assertEqual(VRational(1,3).denom, 3)
+        self.assertEqual(VRational(2,3).numer, 2)
+        self.assertEqual(VRational(2,3).denom, 3)
 
     # def test_EDiv(self):
     #     self.assertEqual(rat(EDiv(EInteger(1),EInteger(2)).eval()), '1/2')

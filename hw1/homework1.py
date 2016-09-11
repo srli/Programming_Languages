@@ -45,6 +45,20 @@ class EBoolean (Exp):
         return VBoolean(self._boolean)
 
 
+class ERational(Exp):
+    # Rational literal
+
+    def __init__(self, n, d):
+        self._numer = n
+        self._denom = d 
+
+    def __str__(self):
+        return "ERational{}/{}".format(self._numer, self._denom)
+
+    def eval(self):
+        return VRational(self._numer, self._denom)
+
+
 class EPlus (Exp):
     # Addition operation
 
@@ -73,7 +87,7 @@ class EPlus (Exp):
                 if first.type == "integer" and second.type == "integer":
                     to_return.append(VInteger(first.value + second.value))
                 else:
-                    raise Exception ("Runtime error: vectors of incompatable types - not integers")
+                    raise Exception ("Runtime error: vectors of incompatable types - not integers or rationals")
 
             return VVector(to_return)
         raise Exception ("Runtime error: trying to add non-numbers")
@@ -189,6 +203,13 @@ class VBoolean (Value):
     def __init__ (self,b):
         self.value = b
         self.type = "boolean"
+
+class VRational(Value):
+    # Value representation of Booleans
+    def __init__(self, num, den):
+        self.numer = num
+        self.denom = den
+        self.type = "rational"
 
 
 #HOMEWORK ANSWERS START HERE
