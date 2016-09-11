@@ -276,34 +276,43 @@ class EOr(Exp):
         _v1 = self._e1.eval()
         _v2 = self._e2.eval()
 
+
         if _v1.type == "vector" and _v2.type == "vector":
             if _v1.length != _v2.length:
                 raise Exception ("Runtime error: lists not equal length")
             else:
                 resList = []
-                valLength = _v1.length
                 i = 0
-                while i < valLength:
-                    v3 = _v1.get(i)
-                    v4 = _v2.get(i)
-                    if v3.type == "boolean" and v4.type == "boolean":
-                        resList.append(EOr(EBoolean(v3.value), EBoolean(v4.value)))
-                    else:
-                        raise Exception("Runtime error: expression is not a Boolean")
+                while i < _v1.length:
+                    resList.append(EOr(EBoolean(_v1.get(i).value), EBoolean(_v2.get(i).value)))
                     i += 1
+
                 return EVector(resList).eval()
 
-        if _v1.type != "boolean":
-            raise Exception ("Runtime error: expression 1 not a Boolean")
-        elif _v1.value:
-            return VBoolean(True)
-
-        if _v2.type != "boolean":
-            raise Exception ("Runtime error: expression 2 not a Boolean")
-        elif _v2.value:
-            return VBoolean(True)
         else:
-            return VBoolean(False)
+            if _v1.type == "boolean":
+                if _v2.type == "boolean":
+                    return VBoolean(_v1.value or _v2.value)
+                elif _v2.type == "vector":
+                    singleBool = _v1
+                    vectorBools = _v2
+                else:
+                    return VBoolean(_v1.value)
+
+            elif _v1.type == "vector" and _v2.type == "boolean":
+                singleBool = _v2
+                vectorBools = _v1
+
+            else:
+                raise Exception ("Runtime error: expressions are not a Booleans")
+
+            resList = []
+            i = 0
+            while i < vectorBools.length:
+                resList.append(EOr(EBoolean(vectorBools.get(i).value), EBoolean(singleBool.value)))
+                i += 1
+            return EVector(resList).eval()
+
 
 class ENot(Exp):
     # Does not operation on one input

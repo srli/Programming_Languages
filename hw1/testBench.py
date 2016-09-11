@@ -108,7 +108,7 @@ class TestCases(unittest.TestCase):
         self.assertEqual(pair(ETimes(EInteger(100),v1).eval()), (200, 300))
 
         self.assertEqual(pair(EAnd(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, False))
-        # self.assertEqual(pair(EOr(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, True))
+        self.assertEqual(pair(EOr(EVector([EBoolean(True),EBoolean(False)]),EBoolean(True)).eval()), (True, True))
 
     # def test_VRational(self):
     #     self.assertEqual(VRational(1,3).numer, 1)
