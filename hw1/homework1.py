@@ -66,10 +66,10 @@ class EPlus (Exp):
             if v1_vec and v2_vec and v1.length != v2.length:
                 raise Exception("Runtime error: vectors of unequal length")
             to_return = []
-            length = v1.length if v1_vec else v2.length 
+            length = v1.length if v1_vec else v2.length
             for i in range(length):
                 first = v1.get(i) if v1_vec else v1
-                second = v2.get(i) if v2_vec else v2 
+                second = v2.get(i) if v2_vec else v2
                 if first.type == "integer" and second.type == "integer":
                     to_return.append(VInteger(first.value + second.value))
                 else:
@@ -100,10 +100,10 @@ class EMinus (Exp):
             if v1_vec and v2_vec and v1.length != v2.length:
                 raise Exception("Runtime error: vectors of unequal length")
             to_return = []
-            length = v1.length if v1_vec else v2.length 
+            length = v1.length if v1_vec else v2.length
             for i in range(length):
                 first = v1.get(i) if v1_vec else v1
-                second = v2.get(i) if v2_vec else v2 
+                second = v2.get(i) if v2_vec else v2
                 if first.type == "integer" and second.type == "integer":
                     to_return.append(VInteger(first.value - second.value))
                 else:
@@ -134,11 +134,11 @@ class ETimes (Exp):
             if v1_vec and v2_vec and v1.length != v2.length:
                 raise Exception("Runtime error: vectors of unequal length")
             to_return = []
-            length = v1.length if v1_vec else v2.length 
+            length = v1.length if v1_vec else v2.length
             v_sum = 0
             for i in range(length):
                 first = v1.get(i) if v1_vec else v1
-                second = v2.get(i) if v2_vec else v2 
+                second = v2.get(i) if v2_vec else v2
                 if first.type == "integer" and second.type == "integer":
                     product = first.value * second.value
                     to_return.append(VInteger(product))
@@ -230,32 +230,41 @@ class EAnd (Exp):
                 raise Exception ("Runtime error: lists not equal length")
             else:
                 resList = []
-                valLength = _v1.length
                 i = 0
-                while i < valLength:
-                    v3 = _v1.get(i)
-                    v4 = _v2.get(i)
-                    if v3.type == "boolean" and v4.type == "boolean":
-                        resList.append(EAnd(EBoolean(v3.value), EBoolean(v4.value)))
-                    else:
-                        raise Exception("Runtime error: expression is not a Boolean")
+                while i < _v1.length:
+                    resList.append(EAnd(EBoolean(_v1.get(i).value), EBoolean(_v2.get(i).value)))
                     i += 1
+
                 return EVector(resList).eval()
 
-        if _v1.type != "boolean":
-            raise Exception ("Runtime error: expression 1 not a Boolean")
-        elif not _v1.value:
-            return VBoolean(False)
-
-        if _v2.type != "boolean":
-            raise Exception ("Runtime error: expression 2 not a Boolean")
-        elif not _v2.value:
-            return VBoolean(False)
         else:
-            return VBoolean(True)
+            if _v1.type == "boolean":
+                if _v2.type == "boolean":
+                    return VBoolean(_v1.value and _v2.value)
+                elif _v2.type == "vector":
+                    singleBool = _v1
+                    vectorBools = _v2
+                else:
+                    return VBoolean(_v1.value)
+
+            elif _v1.type == "vector" and _v2.type == "boolean":
+                singleBool = _v2
+                vectorBools = _v1
+
+            else:
+                raise Exception ("Runtime error: expressions are not a Booleans")
+
+            resList = []
+            i = 0
+            while i < vectorBools.length:
+                resList.append(EAnd(EBoolean(vectorBools.get(i).value), EBoolean(singleBool.value)))
+                i += 1
+            return EVector(resList).eval()
 
 
 class EOr(Exp):
+    #Does OR operation on two inputs
+
     def __init__(self, e1, e2):
         self._e1 = e1
         self._e2 = e2
@@ -266,13 +275,31 @@ class EOr(Exp):
     def eval(self):
         _v1 = self._e1.eval()
         _v2 = self._e2.eval()
+
+        if _v1.type == "vector" and _v2.type == "vector":
+            if _v1.length != _v2.length:
+                raise Exception ("Runtime error: lists not equal length")
+            else:
+                resList = []
+                valLength = _v1.length
+                i = 0
+                while i < valLength:
+                    v3 = _v1.get(i)
+                    v4 = _v2.get(i)
+                    if v3.type == "boolean" and v4.type == "boolean":
+                        resList.append(EOr(EBoolean(v3.value), EBoolean(v4.value)))
+                    else:
+                        raise Exception("Runtime error: expression is not a Boolean")
+                    i += 1
+                return EVector(resList).eval()
+
         if _v1.type != "boolean":
             raise Exception ("Runtime error: expression 1 not a Boolean")
         elif _v1.value:
             return VBoolean(True)
 
         if _v2.type != "boolean":
-            raise Exception ("Runtime error: expression w not a Boolean")
+            raise Exception ("Runtime error: expression 2 not a Boolean")
         elif _v2.value:
             return VBoolean(True)
         else:
@@ -288,9 +315,23 @@ class ENot(Exp):
         return "ENot({})".format(self._exp)
 
     def eval(self):
-        v1 = self._exp.eval()
-        if v1.type == "boolean":
-            return VBoolean(not v1.value)
+        _v1 = self._exp.eval()
+
+        if _v1.type == "vector":
+            resList = []
+            valLength = _v1.length
+            i = 0
+            while i < valLength:
+                _v2 = _v1.get(i)
+                if _v2.type == "boolean":
+                    resList.append(ENot(EBoolean(_v2.value)))
+                else:
+                    raise Exception("Runtime error: expression is not a Boolean")
+                i += 1
+            return EVector(resList).eval()
+
+        if _v1.type == "boolean":
+            return VBoolean(not _v1.value)
         else:
             raise Exception ("Runtime error: condition not a Boolean")
 
@@ -327,8 +368,8 @@ class EVector (Exp):
             i += 1
         return VVector(valList)
 
-def pair(v): 
+def pair(v):
     return (v.get(0).value, v.get(1).value)
 
-def rat (v): 
+def rat (v):
     return "{}/{}".format(v.numer,v.denom)
