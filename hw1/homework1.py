@@ -72,8 +72,29 @@ class EPlus (Exp):
     def eval (self):
         v1 = self._exp1.eval()
         v2 = self._exp2.eval()
+
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value + v2.value)
+        elif v1.type == "rational" or v2.type == "rational":
+            if v1.type == "integer":
+                num1 = v1.value
+                denom1 = 1
+            elif v1.type == "rational":
+                num1 = v1.numer
+                denom1 = v1.denom
+
+            if v2.type == "integer":
+                num2 = v2.value
+                denom2 = 1
+            elif v2.type == "rational":
+                num2 = v2.numer
+                denom2 = v2.denom
+
+            numRes = num1*denom2 + num2*denom1
+            denomRes = denom1*denom2
+
+            return simplify(numRes, denomRes)
+
         elif v1.type == "vector" or v2.type == "vector":
             v1_vec = v1.type == "vector"
             v2_vec = v2.type == "vector"
@@ -108,6 +129,25 @@ class EMinus (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value - v2.value)
+        elif v1.type == "rational" or v2.type == "rational":
+            if v1.type == "integer":
+                num1 = v1.value
+                denom1 = 1
+            elif v1.type == "rational":
+                num1 = v1.numer
+                denom1 = v1.denom
+
+            if v2.type == "integer":
+                num2 = v2.value
+                denom2 = 1
+            elif v2.type == "rational":
+                num2 = v2.numer
+                denom2 = v2.denom
+
+            numRes = num1*denom2 - num2*denom1
+            denomRes = denom1*denom2
+
+            return simplify(numRes, denomRes)
         elif v1.type == "vector" or v2.type == "vector":
             v1_vec = v1.type == "vector"
             v2_vec = v2.type == "vector"
@@ -142,6 +182,25 @@ class ETimes (Exp):
         v2 = self._exp2.eval()
         if v1.type == "integer" and v2.type == "integer":
             return VInteger(v1.value * v2.value)
+        elif v1.type == "rational" or v2.type == "rational":
+            if v1.type == "integer":
+                num1 = v1.value
+                denom1 = 1
+            elif v1.type == "rational":
+                num1 = v1.numer
+                denom1 = v1.denom
+
+            if v2.type == "integer":
+                num2 = v2.value
+                denom2 = 1
+            elif v2.type == "rational":
+                num2 = v2.numer
+                denom2 = v2.denom
+
+            numRes = num1*num2
+            denomRes = denom1*denom2
+
+            return simplify(numRes, denomRes)
         elif v1.type == "vector" or v2.type == "vector":
             v1_vec = v1.type == "vector"
             v2_vec = v2.type == "vector"
@@ -404,8 +463,19 @@ def pair(v):
 def rat (v):
     return "{}/{}".format(v.numer,v.denom)
 
+def simplify (numerator, denominator):
+    i = abs(numerator)
+    while i > 0:
+        if (numerator % i == 0) and (denominator % i == 0):
+            if numerator < 0 and denominator < 0:
+                return VRational(numerator/-i, denominator/-i)
+            else:
+                return VRational(numerator/i, denominator/i)
+        i -= 1
+
 #Question 3
 class EDiv (Exp):
+    #Returns simplified result of dividing two expressions
 
     def __init__(self, exp1, exp2):
         self._exp1 = exp1
@@ -432,12 +502,4 @@ class EDiv (Exp):
             num2 = v2.numer
             denom2 = v2.denom
 
-
-        numRes = num1*denom2
-        denomRes = denom1*num2
-
-        i = numRes
-        while i > 0:
-            if (numRes % i == 0) and (denomRes % i == 0):
-                return VRational(numRes/i, denomRes/i)
-            i -= 1
+        return simplify(num1*denom2, denom1*num2)

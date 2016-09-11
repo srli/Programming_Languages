@@ -122,28 +122,43 @@ class TestCases(unittest.TestCase):
         self.assertEqual(rat(EDiv(EDiv(EInteger(2),EInteger(3)),EInteger(4)).eval()), '1/6')
         self.assertEqual(rat(EDiv(EInteger(2),EDiv(EInteger(3),EInteger(4))).eval()), '8/3')
 
-    # def test_rational_math(self):
-    #     half = EDiv(EInteger(1),EInteger(2))
-    #     third = EDiv(EInteger(1),EInteger(3))
+    def test_rational_math(self):
+        half = EDiv(EInteger(1),EInteger(2))
+        third = EDiv(EInteger(1),EInteger(3))
 
-    #     self.assertEqual(rat(EPlus(half,third).eval()), '5/6')
-    #     self.assertEqual(rat(EPlus(half,EInteger(1)).eval()), '3/2')
-    #     self.assertEqual(rat(EMinus(half,third).eval()), '1/6')
-    #     self.assertEqual(rat(EMinus(half,EInteger(1)).eval()), '-1/2')
-    #     self.assertEqual(rat(ETimes(half,third).eval()), '1/6')
-    #     self.assertEqual(rat(ETimes(half,EInteger(1)).eval()), '1/2')
+        self.assertEqual(rat(EPlus(half,third).eval()), '5/6')
+        self.assertEqual(rat(EPlus(half,EInteger(1)).eval()), '3/2')
+        self.assertEqual(rat(EMinus(half,third).eval()), '1/6')
+        self.assertEqual(rat(EMinus(half,EInteger(1)).eval()), '-1/2')
+        self.assertEqual(rat(ETimes(half,third).eval()), '1/6')
+        self.assertEqual(rat(ETimes(half,EInteger(1)).eval()), '1/2')
 
-    # def test_simplest_form(self):
-    #     self.assertEqual(rat(EDiv(EInteger(3),EInteger(6)).eval()), '1/2')
-    #     self.assertEqual(rat(EDiv(EInteger(4),EInteger(6)).eval()), '2/3')
-    #     self.assertEqual(rat(EDiv(EInteger(-4),EInteger(6)).eval()), '-2/3')
-    #     self.assertEqual(rat(EDiv(EInteger(-4),EInteger(-6)).eval()), '2/3')
+    def test_simplest_form(self):
+        self.assertEqual(rat(EDiv(EInteger(3),EInteger(6)).eval()), '1/2')
+        self.assertEqual(rat(EDiv(EInteger(4),EInteger(6)).eval()), '2/3')
+        self.assertEqual(rat(EDiv(EInteger(-4),EInteger(6)).eval()), '-2/3')
+        self.assertEqual(rat(EDiv(EInteger(-4),EInteger(-6)).eval()), '2/3')
 
-    #     self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval(), <__main__.VInteger object at 0x100f5e590>)
-    #     self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval().value, 2)
-    #     self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval(), <__main__.VInteger object at 0x100f5e650>)
-    #     self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval().value, 2 )
+        # self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval(), <__main__.VInteger object at 0x100f5e590>)
+        # self.assertEqual(EDiv(EInteger(2),EInteger(1)).eval().value, 2)
+        # self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval(), <__main__.VInteger object at 0x100f5e650>)
+        # self.assertEqual(EDiv(EInteger(4),EInteger(2)).eval().value, 2 )
 
+    def test_vectors_all(self):
+        half = EDiv(EInteger(1),EInteger(2))
+        third = EDiv(EInteger(1),EInteger(3))
+
+        # self.assertEqual(rat(EPlus(EVector([half,third]),EVector([third,third])).eval().get(0)), '5/6')
+        # self.assertEqual(rat(EPlus(EVector([half,third]),EVector([third,third])).eval().get(1)), '2/3')
+        # self.assertEqual(rat(EMinus(EVector([half,third]),EVector([third,third])).eval().get(0)), '1/6')
+        # self.assertEqual(rat(EMinus(EVector([half,third]),third).eval().get(0)), '1/6')
+        # self.assertEqual(rat(ETimes(EVector([half,third]),half).eval().get(0)), '1/4')
+        # self.assertEqual(rat(ETimes(EVector([half,third]),half).eval().get(1)), '1/6')
+        #
+        # self.assertEqual(EDiv(EVector([half,third]),EVector([half,third])).eval().get(0).value, 1)
+        # self.assertEqual(EDiv(EVector([half,third]),EVector([half,third])).eval().get(1).value, 1)
+        # self.assertEqual(rat(EDiv(EVector([half,third]),EInteger(2)).eval().get(0)), '1/4')
+        # self.assertEqual(rat(EDiv(EVector([half,third]),EInteger(2)).eval().get(1)), '1/6')
 
 if __name__ == '__main__':
     unittest.main()
