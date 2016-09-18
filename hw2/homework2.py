@@ -31,7 +31,7 @@ class EInteger (Exp):
     def eval (self,prim_dict):
         return VInteger(self._integer)
 
-    def substitute (self,id,new_e):
+    def substitute (self,ids,new_es):
         return self
 
 
@@ -47,7 +47,7 @@ class EBoolean (Exp):
     def eval (self,prim_dict):
         return VBoolean(self._boolean)
 
-    def substitute (self,id,new_e):
+    def substitute (self,ids,new_es):
         return self
 
 
@@ -64,8 +64,8 @@ class EPrimCall (Exp):
         vs = [ e.eval(prim_dict) for e in self._exps ]
         return apply(prim_dict[self._name],vs)
 
-    def substitute (self,id,new_e):
-        new_es = [ e.substitute(id,new_e) for e in self._exps]
+    def substitute (self,ids,new_es):
+        new_es = [ e.substitute(ids,new_es) for e in self._exps]
         return EPrimCall(self._name,new_es)
 
 
@@ -89,35 +89,38 @@ class EIf (Exp):
         else:
             return self._else.eval(prim_dict)
 
-    def substitute (self,id,new_e):
-        return EIf(self._cond.substitute(id,new_e),
-                   self._then.substitute(id,new_e),
-                   self._else.substitute(id,new_e))
+    def substitute (self,ids,new_es):
+        return EIf(self._cond.substitute(ids,new_es),
+                   self._then.substitute(ids,new_es),
+                   self._else.substitute(ids,new_es))
 
 
 class ELet (Exp):
     # local binding
 
-    def __init__ (self,id,e1,e2):
-        self._id = id
-        self._e1 = e1
+    def __init__ (self,assignments,e2):
+        self._ids = [a[0] for a in assignments]
+        self._e1s = [a[1] for a in assignments]
         self._e2 = e2
 
     def __str__ (self):
+        # TODO: update this
         return "ELet({},{},{})".format(self._id,self._e1,self._e2)
 
     def eval (self,prim_dict):
-        new_e2 = self._e2.substitute(self._id,self._e1)
+        new_e2 = self._e2.substitute(self._ids, self._e1s)
         return new_e2.eval(prim_dict)
 
-    def substitute (self,id,new_e):
-        if id == self._id:
-            return ELet(self._id,
-                        self._e1.substitute(id,new_e),
-                        self._e2)
-        return ELet(self._id,
-                    self._e1.substitute(id,new_e),
-                    self._e2.substitute(id,new_e))
+    def substitute (self,ids, new_e1s):
+        new_assignments = []
+        new_e2 = self._e2
+        for i in range(len(ids)):
+            id = ids[i]
+            new_e1 = new_e1s[i]
+            new_assignments.append((id, self._e1s[i].substitute(ids, new_e1s)))
+            if not id in self._ids:
+                new_e2 = new_e2.substitute(ids,new_e1s)
+        return ELet(new_assignments, new_e2)
 
 
 class EId (Exp):
@@ -132,9 +135,12 @@ class EId (Exp):
     def eval (self,prim_dict):
         raise Exception("Runtime error: unknown identifier {}".format(self._id))
 
-    def substitute (self,id,new_e):
-        if id == self._id:
-            return new_e
+    def substitute (self,ids,new_es):
+        for i in range(len(ids)):
+            id = ids[i]
+            new_e = new_es[i]
+            if id == self._id:
+                return new_e
         return self
 
 
