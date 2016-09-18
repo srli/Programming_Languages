@@ -108,16 +108,26 @@ class ELet (Exp):
         return "ELet({},{},{})".format(self._id,self._e1,self._e2)
 
     def eval (self,prim_dict):
+        # print(self._e2.__str__())
+
         new_e2 = self._e2.substitute(self._ids, self._e1s)
+        # print([x.value for x in self._e1s])
         return new_e2.eval(prim_dict)
 
     def substitute (self,ids, new_e1s):
         new_assignments = []
         new_e2 = self._e2
-        for i in range(len(ids)):
-            id = ids[i]
-            new_e1 = new_e1s[i]
-            new_assignments.append((id, self._e1s[i].substitute(ids, new_e1s)))
+        e1s = self._e1s
+
+        # goes through all of the assignments
+        for j in range(len(self._ids)):
+            # substitutes values from upper assignment as needed 
+            for i in range(len(ids)):
+                id = ids[i]
+                new_e1 = new_e1s[i]
+                e1s[j] = e1s[j].substitute(ids, new_e1s)
+            # adds substituted values as assignments for the new ELet statement that will be returned
+            new_assignments.append((self._ids[j], e1s[j]))
             if not id in self._ids:
                 new_e2 = new_e2.substitute(ids,new_e1s)
         return ELet(new_assignments, new_e2)
