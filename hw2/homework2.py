@@ -104,14 +104,10 @@ class ELet (Exp):
         self._e2 = e2
 
     def __str__ (self):
-        # TODO: update this
-        return "ELet({},{},{})".format(self._id,self._e1,self._e2)
+        return "ELet({},{},{})".format(self._ids,self._e1s,self._e2)
 
     def eval (self,prim_dict):
-        # print(self._e2.__str__())
-
         new_e2 = self._e2.substitute(self._ids, self._e1s)
-        # print([x.value for x in self._e1s])
         return new_e2.eval(prim_dict)
 
     def substitute (self,ids, new_e1s):
@@ -131,6 +127,20 @@ class ELet (Exp):
             if not id in self._ids:
                 new_e2 = new_e2.substitute(ids,new_e1s)
         return ELet(new_assignments, new_e2)
+
+
+class ELetS(Expr):
+    """Sequential local binding"""
+
+    def __init__(self, assignments, e2):
+        self.ELet = 
+        self._assignments = assignments
+
+    def __str__ (self):
+        return "ELets({},{},{})".format(self._ids,self._e1s,self._e2)
+
+    def substitute(self, ids, new_e1s):
+        to_sub = 
 
 
 class EId (Exp):
