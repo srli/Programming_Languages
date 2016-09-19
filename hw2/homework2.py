@@ -126,7 +126,7 @@ class ELet (Exp):
 
     def __str__ (self):
         # TODO: update this
-        return "ELet({},{},{})".format(self._id,self._e1,self._e2)
+        return "ELet({},{},{})".format(self._ids,self._e1s,self._e2)
 
     def eval (self,prim_dict,func_dict):
         # print(self._e2.__str__())
@@ -139,6 +139,7 @@ class ELet (Exp):
         new_assignments = []
         new_e2 = self._e2
         e1s = self._e1s
+        # print self
 
         # goes through all of the assignments
         for j in range(len(self._ids)):
@@ -147,13 +148,51 @@ class ELet (Exp):
                 id = ids[i]
                 new_e1 = new_e1s[i]
                 e1s[j] = e1s[j].substitute(ids, new_e1s)
+
+                if not id in self._ids:
+                    new_e2 = new_e2.substitute(ids,new_e1s)
+
             # adds substituted values as assignments for the new ELet statement that will be returned
             new_assignments.append((self._ids[j], e1s[j]))
-            if not id in self._ids:
-                new_e2 = new_e2.substitute(ids,new_e1s)
+
         return ELet(new_assignments, new_e2)
 
+class ELetS (Exp):
+    # local binding
 
+    def __init__ (self,assignments,e2):
+        self._ids = [a[0] for a in assignments]
+        # self._ids.reverse()
+        self._e1s = [a[1] for a in assignments]
+        # self._e1s.reverse()
+        self._e2 = e2
+
+        self._elet_result = self._e2
+        # self.builder()
+
+    def __str__ (self):
+        # TODO: update this
+        return "ELetS({},{},{})".format(self._ids,self._e1s,self._e2)
+
+    def builder(self, ids, new_e1s):
+        for i in range(len(self._ids)):
+            self._elet_result = ELet([(self._ids[i], self._e1s[i])], self._elet_result)
+
+        # print self._elet_result
+        # print "-------"
+        return self._elet_result
+
+    def eval (self,prim_dict,func_dict):
+        # print(self._e2.__str__())
+
+        new_e2 = self._e2.substitute(self._ids, self._e1s)
+        # print([x.value for x in self._e1s])
+        return new_e2.eval(prim_dict,func_dict)
+
+    def substitute (self, ids, new_e1s):
+        print "IN SUBSTITUTE: ", ids, ":::", new_e1s
+        self.builder(ids, new_e1s)
+        return self._elet_result.substitute(ids, new_e1s)
 
 class ELetV (Exp):
     # local binding
@@ -180,6 +219,30 @@ class ELetV (Exp):
                     self._e1.substitute(id,new_e),
                     self._e2.substitute(id,new_e))
 
+class ELetN (Exp):
+    # local binding
+
+    def __init__ (self,id,e1,e2):
+        self._id = id
+        self._e1 = e1
+        self._e2 = e2
+        self._evaluated_ids = {}
+
+    def __str__ (self):
+        return "ELet({},{},{})".format(self._id,self._e1,self._e2)
+
+    def eval (self,prim_dict,func_dict):
+        new_e2 = self._e2.substitute(self._id,self._e1)
+        return new_e2.eval(prim_dict,func_dict)
+
+    def substitute (self,id,new_e):
+        if id == self._id:
+            return ELet(self._id,
+                        self._e1.substitute(id,new_e),
+                        self._e2)
+        return ELet(self._id,
+                    self._e1.substitute(id,new_e),
+                    self._e2.substitute(id,new_e))
 
 
 class EId (Exp):
