@@ -190,7 +190,7 @@ class ELetS (Exp):
         return new_e2.eval(prim_dict,func_dict)
 
     def substitute (self, ids, new_e1s):
-        print "IN SUBSTITUTE: ", ids, ":::", new_e1s
+        print "SUBSTITUTE: ", ids, ":::", new_e1s
         self.builder(ids, new_e1s)
         return self._elet_result.substitute(ids, new_e1s)
 
