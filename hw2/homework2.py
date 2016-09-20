@@ -174,13 +174,13 @@ class ELetS (Exp):
         # TODO: update this
         return "ELetS({},{},{})".format(self._ids,self._e1s,self._e2)
 
-    def builder(self, ids, new_e1s):
-        for i in range(len(self._ids)):
-            self._elet_result = ELet([(self._ids[i], self._e1s[i])], self._elet_result)
+    # def builder(self, ids, new_e1s):
+    #     for i in range(len(self._ids)):
+    #         self._elet_result = ELet([(self._ids[i], self._e1s[i])], self._elet_result)
 
-        # print self._elet_result
-        # print "-------"
-        return self._elet_result
+    #     # print self._elet_result
+    #     # print "-------"
+    #     return self._elet_result
 
     def eval (self,prim_dict,func_dict):
         # print(self._e2.__str__())
@@ -189,10 +189,31 @@ class ELetS (Exp):
         # print([x.value for x in self._e1s])
         return new_e2.eval(prim_dict,func_dict)
 
-    def substitute (self, ids, new_e1s):
-        print "IN SUBSTITUTE: ", ids, ":::", new_e1s
-        self.builder(ids, new_e1s)
-        return self._elet_result.substitute(ids, new_e1s)
+    def substitute (self,ids, new_e1s):
+        new_assignments = []
+        new_e2 = self._e2
+        # print self
+
+        # goes through all of the assignments
+        for j in range(len(self._ids)):
+            # first sub the other parameters
+            for i in range(j,len(self._ids)):
+                self._e1s[i] = self._e1s[i].substitute([j], [self._e1s[i]])
+            print(self._ids, self._e1s)
+
+            # substitutes values from upper assignment as needed
+            for i in range(len(ids)):
+                id = ids[i]
+                new_e1 = new_e1s[i]
+                self._e1s[j] = self._e1s[j].substitute(ids, new_e1s)
+
+                if not id in self._ids:
+                    new_e2 = new_e2.substitute(ids,new_e1s)
+
+            # adds substituted values as assignments for the new ELet statement that will be returned
+            new_assignments.append((self._ids[j], self._e1s[j]))
+
+        return ELet(new_assignments, new_e2)
 
 class ELetV (Exp):
     # local binding
