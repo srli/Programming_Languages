@@ -214,6 +214,11 @@ class ELetS (Exp):
             new_assignments.append((self._ids[j], self._e1s[j]))
 
         return ELet(new_assignments, new_e2)
+        
+    # def substitute (self, ids, new_e1s):
+    #     print "SUBSTITUTE: ", ids, ":::", new_e1s
+    #     self.builder(ids, new_e1s)
+    #     return self._elet_result.substitute(ids, new_e1s)
 
 class ELetV (Exp):
     # local binding
