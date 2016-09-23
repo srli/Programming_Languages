@@ -10,7 +10,7 @@
 
 
 import sys
-from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums
+from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums, OneOrMore
 
 
 #
@@ -25,7 +25,7 @@ class EValue (Exp):
     # Value literal (could presumably replace EInteger and EBoolean)
     def __init__ (self,v):
         self._value = v
-    
+
     def __str__ (self):
         return "EValue({})".format(self._value)
 
@@ -186,7 +186,7 @@ class ECall (Exp):
         return ECall(self._name,new_es)
 
 
-    
+
 #
 # Values
 #
@@ -197,7 +197,7 @@ class Value (object):
 
 class VInteger (Value):
     # Value representation of integers
-    
+
     def __init__ (self,i):
         self.value = i
         self.type = "integer"
@@ -207,7 +207,7 @@ class VInteger (Value):
 
 class VBoolean (Value):
     # Value representation of Booleans
-    
+
     def __init__ (self,b):
         self.value = b
         self.type = "boolean"
@@ -219,7 +219,7 @@ class VBoolean (Value):
 
 # Primitive operations
 
-def oper_plus (v1,v2): 
+def oper_plus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
         return VInteger(v1.value + v2.value)
     raise Exception ("Runtime error: trying to add non-numbers")
@@ -272,6 +272,13 @@ INITIAL_FUN_DICT = {
 ##
 # cf http://pyparsing.wikispaces.com/
 
+def pLET_exps_unpack(result):
+    i = 3
+    exps = []
+    while result[i] != ')':
+        exps.append(result[i])
+        i += 1
+    return ELet(exps,result[i+1])
 
 def parse (input):
     # parse a string into an element of the abstract representation
@@ -311,8 +318,11 @@ def parse (input):
     pBINDING = "(" + pNAME + pEXPR + ")"
     pBINDING.setParseAction(lambda result: (result[1],result[2]))
 
-    pLET = "(" + Keyword("let") + "(" + pBINDING + ")" + pEXPR + ")"
-    pLET.setParseAction(lambda result: ELet([result[3]],result[5]))
+    pMULT_BINDING = OneOrMore(pBINDING)
+    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
+
+    pLET = "(" + Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR + ")"
+    pLET.setParseAction(lambda result: pLET_exps_unpack(result))
 
     pPLUS = "(" + Keyword("+") + pEXPR + pEXPR + ")"
     pPLUS.setParseAction(lambda result: ECall("+",[result[2],result[3]]))
@@ -320,7 +330,10 @@ def parse (input):
     pTIMES = "(" + Keyword("*") + pEXPR + pEXPR + ")"
     pTIMES.setParseAction(lambda result: ECall("*",[result[2],result[3]]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pPLUS | pTIMES)
+    pUSR_FUNC = "(" +  pNAME  + OneOrMore(pEXPR)+ ")"
+    pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC)
 
     result = pEXPR.parseString(input)[0]
     return result    # the first element of the result is the expression
@@ -342,5 +355,4 @@ def shell ():
 
 # increase stack size to let us call recursive functions quasi comfortably
 sys.setrecursionlimit(10000)
-
-
+shell()
