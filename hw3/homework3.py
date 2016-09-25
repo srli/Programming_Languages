@@ -295,7 +295,6 @@ def parse (input):
     #            ( * <expr> <expr> )
     #
 
-
     idChars = alphas+"_+*-?!=<>"
 
     pIDENTIFIER = Word(idChars, idChars+"0123456789")
@@ -339,6 +338,77 @@ def parse (input):
     return result    # the first element of the result is the expression
 
 
+def parse_natural (input):
+    # parse a string into an element of the abstract representation
+
+    # Grammar:
+    #
+    # <expr> ::= <integer>
+    #              true
+    #              false
+    #              <identifier>
+    #              ( expr )
+    #              <expr> ? <expr> : <expr>
+    #              let ( <bindings> ) <expr>
+    #              <expr> + <expr>
+    #              <expr> * <expr>
+    #              <expr> - <expr>
+    #              <name> ( <expr-seq> )
+    #
+    #   <bindings> ::= <name> = <expr> , <bindings>
+    #                  <name> = <expr>
+    #
+    #   <expr-seq> ::= <expr> , <expr-seq>
+    #                  <expr>
+
+#TODO: fix result indexing
+
+    idChars = alphas+"_+*-?!=<>"
+
+    pIDENTIFIER = Word(idChars, idChars+"0123456789")
+    pIDENTIFIER.setParseAction(lambda result: EId(result[0]))
+
+    # A name is like an identifier but it does not return an EId...
+    pNAME = Word(idChars,idChars+"0123456789")
+
+    pINTEGER = Word("-0123456789","0123456789")
+    pINTEGER.setParseAction(lambda result: EInteger(int(result[0])))
+
+    pBOOLEAN = Keyword("true") | Keyword("false")
+    pBOOLEAN.setParseAction(lambda result: EBoolean(result[0]=="true"))
+
+    pEXPR = Forward()
+
+    pIF = pEXPR + "?" + pEXPR + ":" + pEXPR
+    pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
+
+    pBINDING = pNAME + "=" + pEXPR
+    pBINDING.setParseAction(lambda result: (result[1],result[2]))
+
+    pMULT_BINDING = OneOrMore(pBINDING)
+    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
+
+    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
+    pLET.setParseAction(lambda result: pLET_exps_unpack(result))
+
+    pPLUS = pEXPR + Keyword("+") + pEXPR
+    pPLUS.setParseAction(lambda result: ECall("+",[result[2],result[3]]))
+
+    pTIMES = pEXPR + Keyword("*") + pEXPR
+    pTIMES.setParseAction(lambda result: ECall("*",[result[2],result[3]]))
+
+    pMINUS = pEXPR + Keyword("-") + pEXPR
+    pMINUS.setParseAction(lambda result: ECall("-",[result[2],result[3]]))
+
+    pUSR_FUNC = pNAME  + OneOrMore(pEXPR)
+    pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pMINUS| pTIMES | pUSR_FUNC)
+
+    result = pEXPR.parseString(input)[0]
+    return result    # the first element of the result is the expression
+
+
 def shell ():
     # A simple shell
     # Repeatedly read a line of input, parse it, and evaluate the result
@@ -353,6 +423,20 @@ def shell ():
         v = exp.eval(INITIAL_FUN_DICT)
         print v
 
+def shell_natural():
+    # A simple natural shell
+    # Repeatedly read a line of input, parse it, and evaluate the result
+
+    print "Homework 3 - Calc Language (Natural Syntax)"
+    while True:
+        inp = raw_input("calc/nat> ")
+        if not inp:
+            return
+        exp = parse_natural(inp)
+        print "Abstract representation:", exp
+        v = exp.eval(INITIAL_FUN_DICT)
+        print v
+
 # increase stack size to let us call recursive functions quasi comfortably
 sys.setrecursionlimit(10000)
-shell()
+shell_natural()
