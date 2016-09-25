@@ -35,6 +35,20 @@ class EValue (Exp):
     def substitute (self,id,new_e):
         return self
 
+class EPrint (Exp):
+    # A class for allowing print messages instead of results
+    def __init__(self, s):
+        self._value = s 
+
+    def __str__(self):
+        return self._value
+
+    def eval(self, s):
+        return self._value
+
+    def substitute(self, id, new_e):
+        return self
+
 
 class EInteger (Exp):
     # Integer literal
@@ -215,6 +229,16 @@ class VBoolean (Value):
     def __str__ (self):
         return "true" if self.value else "false"
 
+class VPrint(Value):
+    # Value representation of print(value)
+
+    def __init__(self, i):
+        self._value = i 
+        self._type = "print Statement"
+
+    def __str__(self):
+        return self._value
+
 
 
 # Primitive operations
@@ -280,6 +304,21 @@ def pLET_exps_unpack(result):
         i += 1
     return ELet(exps,result[i+1])
 
+def pDEF_FUNC_unpack_and_add_to_dict(result, dictionary):
+    name = result[3]
+    i = 4
+    var_list = []
+    while result[i] != ')':
+        var_list.append(result[i])
+        i += 1
+    print(var_list, len(result))
+    expr = result[i+1]
+    print(expr)
+    dictionary[name] = dict([("params", var_list), ("body", expr)])
+    print("HI", dictionary[name])
+    return EPrint("Function {} added to the functions dictioanry".format(name))
+
+
 def parse (input):
     # parse a string into an element of the abstract representation
 
@@ -332,7 +371,10 @@ def parse (input):
     pUSR_FUNC = "(" +  pNAME  + OneOrMore(pEXPR)+ ")"
     pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC)
+    pDEF_FUNC = "(" + Keyword("defun") + OneOrMore(pNAME) + "(" + OneOrMore(pIDENTIFIER) + ")" + pEXPR + ")"
+    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict(result, INITIAL_FUN_DICT))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC | pDEF_FUNC)
 
     result = pEXPR.parseString(input)[0]
     return result    # the first element of the result is the expression
