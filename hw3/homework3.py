@@ -478,7 +478,7 @@ def shell ():
         exp = parse(inp)
         if exp["result"] == "expression":
             print "Abstract representation:", exp
-            v = exp.eval(INITIAL_FUN_DICT)
+            v = exp["expr"].eval(INITIAL_FUN_DICT)
             print v
         elif exp["result"] == "function":
             INITIAL_FUN_DICT[exp["name"]] = {"params":exp["params"], "body":exp["body"]}
