@@ -38,7 +38,7 @@ class EValue (Exp):
 class EPrint (Exp):
     # A class for allowing print messages instead of results
     def __init__(self, s):
-        self._value = s 
+        self._value = s
 
     def __str__(self):
         return self._value
@@ -233,7 +233,7 @@ class VPrint(Value):
     # Value representation of print(value)
 
     def __init__(self, i):
-        self._value = i 
+        self._value = i
         self._type = "print Statement"
 
     def __str__(self):
@@ -320,6 +320,21 @@ def pDEF_FUNC_unpack_and_add_to_dict(result):
     return EPrint("Function {} added to the functions dictioanry".format(name))
 
 
+def pDEF_FUNC_unpack_and_add_to_dict2(result):
+    global INITIAL_FUN_DICT
+    name = result[2]
+    i = 4
+    var_list = []
+    while result[i] != ')':
+        var_list.append(result[i])
+        i += 1
+    print([x.__str__() for x in var_list])
+    expr = result[i+1]
+    print(expr)
+    INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
+    print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
+    return EPrint("Function {} added to the functions dictioanry".format(name))
+
 def parse (input):
     # parse a string into an element of the abstract representation
 
@@ -373,13 +388,12 @@ def parse (input):
     pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
 
     pDEF_FUNC = "(" + Keyword("defun") + OneOrMore(pNAME) + "(" + OneOrMore(pIDENTIFIER) + ")" + pEXPR + ")"
-    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict(result))
+    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict2(result))
 
     pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC | pDEF_FUNC)
 
     result = pEXPR.parseString(input)[0]
     return result    # the first element of the result is the expression
-
 
 def parse_natural (input):
     # parse a string into an element of the abstract representation
@@ -455,16 +469,21 @@ def parse_natural (input):
 def shell ():
     # A simple shell
     # Repeatedly read a line of input, parse it, and evaluate the result
-
+    global INITIAL_FUN_DICT
     print "Homework 3 - Calc Language"
+
     while True:
         inp = raw_input("calc> ")
         if not inp:
             return
         exp = parse(inp)
-        print "Abstract representation:", exp
-        v = exp.eval(INITIAL_FUN_DICT)
-        print v
+        if exp["result"] == "expression"
+            print "Abstract representation:", exp
+            v = exp.eval(INITIAL_FUN_DICT)
+            print v
+        elif exp["result"] == "function"
+            INITIAL_FUN_DICT[exp["name"]] = {"params":exp["params"], "body":exp["body"]}
+            print "Function " + exp["name"] + " added to functions dictionary"
 
 def shell_natural():
     # A simple natural shell
@@ -482,4 +501,5 @@ def shell_natural():
 
 # increase stack size to let us call recursive functions quasi comfortably
 sys.setrecursionlimit(10000)
-shell_natural()
+shell()
+# shell_natural()
