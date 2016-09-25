@@ -305,35 +305,30 @@ def pLET_exps_unpack(result):
     return ELet(exps,result[i+1])
 
 def pDEF_FUNC_unpack_and_add_to_dict(result):
-    global INITIAL_FUN_DICT
     name = result[2]
     i = 4
     var_list = []
     while result[i] != ')':
         var_list.append(result[i])
         i += 1
-    print([x.__str__() for x in var_list])
-    expr = result[i+1]
-    print(expr)
-    INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
-    print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
-    return EPrint("Function {} added to the functions dictioanry".format(name))
 
-
-def pDEF_FUNC_unpack_and_add_to_dict2(result):
-    global INITIAL_FUN_DICT
-    name = result[2]
-    i = 4
-    var_list = []
-    while result[i] != ')':
-        var_list.append(result[i])
-        i += 1
-    print([x.__str__() for x in var_list])
     expr = result[i+1]
-    print(expr)
-    INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
-    print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
-    return EPrint("Function {} added to the functions dictioanry".format(name))
+    return dict([("name", name), ("params", var_list), ("body", expr)])
+
+# def pDEF_FUNC_unpack_and_add_to_dict2(result):
+#     global INITIAL_FUN_DICT
+#     name = result[2]
+#     i = 4
+#     var_list = []
+#     while result[i] != ')':
+#         var_list.append(result[i])
+#         i += 1
+#     print([x.__str__() for x in var_list])
+#     expr = result[i+1]
+#     print(expr)
+#     INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
+#     print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
+#     return EPrint("Function {} added to the functions dictioanry".format(name))
 
 def parse (input):
     # parse a string into an element of the abstract representation
@@ -387,13 +382,17 @@ def parse (input):
     pUSR_FUNC = "(" +  pNAME  + OneOrMore(pEXPR)+ ")"
     pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
 
-    pDEF_FUNC = "(" + Keyword("defun") + OneOrMore(pNAME) + "(" + OneOrMore(pIDENTIFIER) + ")" + pEXPR + ")"
-    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict2(result))
+    pDEF_FUNC = "(" + Keyword("defun") + pNAME + "(" + OneOrMore(pNAME) + ")" + pEXPR + ")"
+    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict(result))
 
     pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC | pDEF_FUNC)
 
     result = pEXPR.parseString(input)[0]
-    return result    # the first element of the result is the expression
+
+    if type(result) == dict:
+        return {"result":"function", "name":result["name"], "params":result["params"], "body":result["body"]}
+    else:
+        return {"result":"expression", "expr":result}
 
 def parse_natural (input):
     # parse a string into an element of the abstract representation
@@ -477,11 +476,11 @@ def shell ():
         if not inp:
             return
         exp = parse(inp)
-        if exp["result"] == "expression"
+        if exp["result"] == "expression":
             print "Abstract representation:", exp
             v = exp.eval(INITIAL_FUN_DICT)
             print v
-        elif exp["result"] == "function"
+        elif exp["result"] == "function":
             INITIAL_FUN_DICT[exp["name"]] = {"params":exp["params"], "body":exp["body"]}
             print "Function " + exp["name"] + " added to functions dictionary"
 
@@ -494,7 +493,7 @@ def shell_natural():
         inp = raw_input("calc/nat> ")
         if not inp:
             return
-        exp = parse_natural(inp)
+        exp = parse(inp)
         print "Abstract representation:", exp
         v = exp.eval(INITIAL_FUN_DICT)
         print v
