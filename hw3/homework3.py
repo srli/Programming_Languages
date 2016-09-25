@@ -10,7 +10,7 @@
 
 
 import sys
-from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums, OneOrMore
+from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums, OneOrMore, Optional
 
 
 #
@@ -34,21 +34,6 @@ class EValue (Exp):
 
     def substitute (self,id,new_e):
         return self
-
-class EPrint (Exp):
-    # A class for allowing print messages instead of results
-    def __init__(self, s):
-        self._value = s
-
-    def __str__(self):
-        return self._value
-
-    def eval(self, s):
-        return self._value
-
-    def substitute(self, id, new_e):
-        return self
-
 
 class EInteger (Exp):
     # Integer literal
@@ -229,18 +214,6 @@ class VBoolean (Value):
     def __str__ (self):
         return "true" if self.value else "false"
 
-class VPrint(Value):
-    # Value representation of print(value)
-
-    def __init__(self, i):
-        self._value = i
-        self._type = "print Statement"
-
-    def __str__(self):
-        return self._value
-
-
-
 # Primitive operations
 
 def oper_plus (v1,v2):
@@ -289,12 +262,18 @@ INITIAL_FUN_DICT = {
                                                                EId("e")])]))}
 }
 
-
-
 ##
 ## PARSER
 ##
 # cf http://pyparsing.wikispaces.com/
+
+def pLET_exps_unpack_nat(result):
+    i = 2
+    exps = []
+    while result[i] != ')':
+        exps.append(result[i])
+        i += 1
+    return ELet(exps,result[i+1])
 
 def pLET_exps_unpack(result):
     i = 3
@@ -315,20 +294,6 @@ def pDEF_FUNC_unpack_and_add_to_dict(result):
     expr = result[i+1]
     return dict([("name", name), ("params", var_list), ("body", expr)])
 
-# def pDEF_FUNC_unpack_and_add_to_dict2(result):
-#     global INITIAL_FUN_DICT
-#     name = result[2]
-#     i = 4
-#     var_list = []
-#     while result[i] != ')':
-#         var_list.append(result[i])
-#         i += 1
-#     print([x.__str__() for x in var_list])
-#     expr = result[i+1]
-#     print(expr)
-#     INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
-#     print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
-#     return EPrint("Function {} added to the functions dictioanry".format(name))
 
 def parse (input):
     # parse a string into an element of the abstract representation
@@ -394,6 +359,11 @@ def parse (input):
     else:
         return {"result":"expression", "expr":result}
 
+
+def print_result (input):
+    print "THIS IS RESULT: " + input
+    return input
+
 def parse_natural (input):
     # parse a string into an element of the abstract representation
 
@@ -417,7 +387,7 @@ def parse_natural (input):
     #   <expr-seq> ::= <expr> , <expr-seq>
     #                  <expr>
 
-#TODO: fix result indexing
+    #TODO: fix result indexing
 
     idChars = alphas+"_+*-?!=<>"
 
@@ -435,35 +405,41 @@ def parse_natural (input):
 
     pEXPR = Forward()
 
+    pSINGLE_EXPR = "(" + pEXPR + ")"
+    pSINGLE_EXPR.setParseAction(lambda result:result[1])
+
     pIF = pEXPR + "?" + pEXPR + ":" + pEXPR
-    pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
+    pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pBINDING = pNAME + "=" + pEXPR
-    pBINDING.setParseAction(lambda result: (result[1],result[2]))
+    pBINDING = pNAME + Keyword("=") + pEXPR
+    pBINDING.setParseAction(lambda result: (result[0], result[2]))
 
-    pMULT_BINDING = OneOrMore(pBINDING)
-    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
+    pMULT_BINDING = pBINDING + Optional(OneOrMore(Keyword(",") + pBINDING))
+    pMULT_BINDING.setParseAction(lambda result:[(r[0],r[1]) for r in result])
 
     pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
-    pLET.setParseAction(lambda result: pLET_exps_unpack(result))
+    pLET.setParseAction(lambda result:pLET_exps_unpack(result))
 
     pPLUS = pEXPR + Keyword("+") + pEXPR
-    pPLUS.setParseAction(lambda result: ECall("+",[result[2],result[3]]))
+    pPLUS.setParseAction(lambda result: ECall("+", [result[0], result[2]]))
 
     pTIMES = pEXPR + Keyword("*") + pEXPR
-    pTIMES.setParseAction(lambda result: ECall("*",[result[2],result[3]]))
+    pTIMES.setParseAction(lambda result: ECall("*", [result[0], result[2]]))
 
     pMINUS = pEXPR + Keyword("-") + pEXPR
-    pMINUS.setParseAction(lambda result: ECall("-",[result[2],result[3]]))
+    pMINUS.setParseAction(lambda result: ECall("-", [result[0], result[2]]))
 
-    pUSR_FUNC = pNAME  + OneOrMore(pEXPR)
+    pUSR_FUNC = pNAME + "(" + pEXPR + Optional(OneOrMore(Keyword(",") + pEXPR)) + ")"
     pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pMINUS| pTIMES | pUSR_FUNC)
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pMINUS | pUSR_FUNC)
 
     result = pEXPR.parseString(input)[0]
-    return result    # the first element of the result is the expression
 
+    if type(result) == dict:
+        return {"result":"function", "name":result["name"], "params":result["params"], "body":result["body"]}
+    else:
+        return {"result":"expression", "expr":result}
 
 def shell ():
     # A simple shell
@@ -487,18 +463,23 @@ def shell ():
 def shell_natural():
     # A simple natural shell
     # Repeatedly read a line of input, parse it, and evaluate the result
-
+    global INITIAL_FUN_DICT
     print "Homework 3 - Calc Language (Natural Syntax)"
+
     while True:
         inp = raw_input("calc/nat> ")
         if not inp:
             return
-        exp = parse(inp)
-        print "Abstract representation:", exp
-        v = exp.eval(INITIAL_FUN_DICT)
-        print v
+        exp = parse_natural(inp)
+        if exp["result"] == "expression":
+            print "Abstract representation:", exp
+            v = exp["expr"].eval(INITIAL_FUN_DICT)
+            print v
+        elif exp["result"] == "function":
+            INITIAL_FUN_DICT[exp["name"]] = {"params":exp["params"], "body":exp["body"]}
+            print "Function " + exp["name"] + " added to functions dictionary"
 
 # increase stack size to let us call recursive functions quasi comfortably
 sys.setrecursionlimit(10000)
-shell()
-# shell_natural()
+shell_natural()
+# shell()
