@@ -304,18 +304,19 @@ def pLET_exps_unpack(result):
         i += 1
     return ELet(exps,result[i+1])
 
-def pDEF_FUNC_unpack_and_add_to_dict(result, dictionary):
-    name = result[3]
+def pDEF_FUNC_unpack_and_add_to_dict(result):
+    global INITIAL_FUN_DICT
+    name = result[2]
     i = 4
     var_list = []
     while result[i] != ')':
         var_list.append(result[i])
         i += 1
-    print(var_list, len(result))
+    print([x.__str__() for x in var_list])
     expr = result[i+1]
     print(expr)
-    dictionary[name] = dict([("params", var_list), ("body", expr)])
-    print("HI", dictionary[name])
+    INITIAL_FUN_DICT[name] = dict([("params", var_list), ("body", expr)])
+    print("HI", INITIAL_FUN_DICT[name]["params"].__str__(), INITIAL_FUN_DICT[name]["body"].__str__())
     return EPrint("Function {} added to the functions dictioanry".format(name))
 
 
@@ -373,7 +374,7 @@ def parse (input):
     pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
 
     pDEF_FUNC = "(" + Keyword("defun") + OneOrMore(pNAME) + "(" + OneOrMore(pIDENTIFIER) + ")" + pEXPR + ")"
-    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict(result, INITIAL_FUN_DICT))
+    pDEF_FUNC.setParseAction(lambda result: pDEF_FUNC_unpack_and_add_to_dict(result))
 
     pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pUSR_FUNC | pDEF_FUNC)
 
