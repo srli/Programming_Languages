@@ -10,7 +10,7 @@
 
 
 import sys
-from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums, OneOrMore, Optional
+from pyparsing import Word, Literal,  Keyword, Forward, alphas, alphanums, OneOrMore, Optional, ZeroOrMore, Suppress
 
 
 #
@@ -360,9 +360,9 @@ def parse (input):
         return {"result":"expression", "expr":result}
 
 
-def print_result (input):
-    print "THIS IS RESULT: " + input
-    return input
+def print_result (inputa):
+    print "THIS IS RESULT: ", inputa
+    return inputa
 
 def parse_natural (input):
     # parse a string into an element of the abstract representation
@@ -404,6 +404,7 @@ def parse_natural (input):
     pBOOLEAN.setParseAction(lambda result: EBoolean(result[0]=="true"))
 
     pEXPR = Forward()
+    pEXPR_REST = Forward()
 
     pSINGLE_EXPR = "(" + pEXPR + ")"
     pSINGLE_EXPR.setParseAction(lambda result:result[1])
@@ -414,25 +415,30 @@ def parse_natural (input):
     pBINDING = pNAME + Keyword("=") + pEXPR
     pBINDING.setParseAction(lambda result: (result[0], result[2]))
 
-    pMULT_BINDING = pBINDING + Optional(OneOrMore(Keyword(",") + pBINDING))
-    pMULT_BINDING.setParseAction(lambda result:[(r[0],r[1]) for r in result])
+    pMULT_BINDING = pBINDING + ZeroOrMore(Suppress(",") + pBINDING)
+    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
 
     pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
-    pLET.setParseAction(lambda result:pLET_exps_unpack(result))
+    pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
-    pPLUS = pEXPR + Keyword("+") + pEXPR
-    pPLUS.setParseAction(lambda result: ECall("+", [result[0], result[2]]))
+    pALGEBRA = pINTEGER + pEXPR_REST
+    pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
-    pTIMES = pEXPR + Keyword("*") + pEXPR
-    pTIMES.setParseAction(lambda result: ECall("*", [result[0], result[2]]))
+    pPLUS = Keyword("+") + pEXPR
+    pPLUS.setParseAction(lambda result: result)
 
-    pMINUS = pEXPR + Keyword("-") + pEXPR
-    pMINUS.setParseAction(lambda result: ECall("-", [result[0], result[2]]))
+    pTIMES = Keyword("*") + pEXPR
+    pTIMES.setParseAction(lambda result: result)
 
-    pUSR_FUNC = pNAME + "(" + pEXPR + Optional(OneOrMore(Keyword(",") + pEXPR)) + ")"
-    pUSR_FUNC.setParseAction(lambda result: ECall(result[1], result[2:-1]))
+    pMINUS = Keyword("-") + pEXPR
+    pMINUS.setParseAction(lambda result: result)
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF | pLET | pPLUS | pTIMES | pMINUS | pUSR_FUNC)
+    pUSR_FUNC = pNAME + "(" + pEXPR + ZeroOrMore(Suppress(",") + pEXPR) + ")"
+    pUSR_FUNC.setParseAction(lambda result: ECall(result[0], result[2:-1]))
+
+    pEXPR_REST << (pPLUS | pTIMES | pMINUS)
+
+    pEXPR << (pLET | pUSR_FUNC | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF )
 
     result = pEXPR.parseString(input)[0]
 
@@ -472,7 +478,7 @@ def shell_natural():
             return
         exp = parse_natural(inp)
         if exp["result"] == "expression":
-            print "Abstract representation:", exp
+            print "Abstract representation:", exp["expr"].__str__()
             v = exp["expr"].eval(INITIAL_FUN_DICT)
             print v
         elif exp["result"] == "function":
