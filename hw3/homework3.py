@@ -409,9 +409,6 @@ def parse_natural (input):
     pSINGLE_EXPR = "(" + pEXPR + ")"
     pSINGLE_EXPR.setParseAction(lambda result:result[1])
 
-    pIF = pEXPR + "?" + pEXPR + ":" + pEXPR
-    pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
-
     pBINDING = pNAME + Keyword("=") + pEXPR
     pBINDING.setParseAction(lambda result: (result[0], result[2]))
 
@@ -421,7 +418,10 @@ def parse_natural (input):
     pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
-    pALGEBRA = pINTEGER + pEXPR_REST
+    pIF = pBOOLEAN + "?" + pEXPR + ":" + pEXPR
+    pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
+
+    pALGEBRA = pPARENS + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
     pPLUS = Keyword("+") + pEXPR
@@ -436,9 +436,9 @@ def parse_natural (input):
     pUSR_FUNC = pNAME + "(" + pEXPR + ZeroOrMore(Suppress(",") + pEXPR) + ")"
     pUSR_FUNC.setParseAction(lambda result: ECall(result[0], result[2:-1]))
 
-    pEXPR_REST << (pPLUS | pTIMES | pMINUS)
+    pEXPR_REST << (pTIMES | pPLUS | pMINUS)
 
-    pEXPR << (pLET | pUSR_FUNC | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pIF )
+    pEXPR << (pLET | pUSR_FUNC | pIF | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pSINGLE_EXPR)
 
     result = pEXPR.parseString(input)[0]
 
