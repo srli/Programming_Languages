@@ -421,7 +421,12 @@ def parse_natural (input):
     pIF = pBOOLEAN + "?" + pEXPR + ":" + pEXPR
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pALGEBRA = pPARENS + pEXPR_REST
+    pUSR_FUNC = pNAME + "(" + pEXPR + ZeroOrMore(Suppress(",") + pEXPR) + ")"
+    pUSR_FUNC.setParseAction(lambda result: ECall(result[0], result[2:-1]))
+
+    pEXPR_FIRST = pINTEGER | pIDENTIFIER + pSINGLE_EXPR + pLET + pUSR_FUNC
+    
+    pALGEBRA = pEXPR_FIRST + pEXPR_REST 
     pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
     pPLUS = Keyword("+") + pEXPR
@@ -432,9 +437,6 @@ def parse_natural (input):
 
     pMINUS = Keyword("-") + pEXPR
     pMINUS.setParseAction(lambda result: result)
-
-    pUSR_FUNC = pNAME + "(" + pEXPR + ZeroOrMore(Suppress(",") + pEXPR) + ")"
-    pUSR_FUNC.setParseAction(lambda result: ECall(result[0], result[2:-1]))
 
     pEXPR_REST << (pTIMES | pPLUS | pMINUS)
 
