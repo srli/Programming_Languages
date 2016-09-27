@@ -405,9 +405,7 @@ def parse_natural (input):
 
     pEXPR = Forward()
     pEXPR_REST = Forward()
-
-    pSINGLE_EXPR = "(" + pEXPR + ")"
-    pSINGLE_EXPR.setParseAction(lambda result:result[1])
+    pEXPR_META = Forward()
 
     pBINDING = pNAME + Keyword("=") + pEXPR
     pBINDING.setParseAction(lambda result: (result[0], result[2]))
@@ -415,10 +413,10 @@ def parse_natural (input):
     pMULT_BINDING = pBINDING + ZeroOrMore(Suppress(",") + pBINDING)
     pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
 
-    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
+    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + OneOrMore(pEXPR)
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
-    pIF = pBOOLEAN + "?" + pEXPR + ":" + pEXPR
+    pIF = pEXPR + Keyword("?") + pEXPR + Keyword(":") + pEXPR
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
     pUSR_FUNC = pNAME + "(" + pEXPR + ZeroOrMore(Suppress(",") + pEXPR) + ")"
@@ -440,9 +438,12 @@ def parse_natural (input):
 
     pEXPR_REST << (pTIMES | pPLUS | pMINUS)
 
-    pEXPR << (pLET | pUSR_FUNC | pIF | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pSINGLE_EXPR)
+    pEXPR_META << (pIF | pEXPR)
 
-    result = pEXPR.parseString(input)[0]
+    pEXPR << (pUSR_FUNC | pLET | pALGEBRA_PARENS | pALGEBRA  |  pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME)
+
+    result = pEXPR_META.parseString(input)[0]
+    # result = pEXPR.parseString(input)[0]
 
     if type(result) == dict:
         return {"result":"function", "name":result["name"], "params":result["params"], "body":result["body"]}
