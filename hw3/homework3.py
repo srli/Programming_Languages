@@ -268,6 +268,8 @@ INITIAL_FUN_DICT = {
 # cf http://pyparsing.wikispaces.com/
 
 def pLET_exps_unpack_nat(result):
+    print "UNPACK NATS"
+    print result
     i = 2
     exps = []
     while result[i] != ')':
@@ -405,9 +407,7 @@ def parse_natural (input):
 
     pEXPR = Forward()
     pEXPR_REST = Forward()
-
-    pSINGLE_EXPR = "(" + pEXPR + ")"
-    pSINGLE_EXPR.setParseAction(lambda result:result[1])
+    pEXPR_META = Forward()
 
     pBINDING = pNAME + Keyword("=") + pEXPR
     pBINDING.setParseAction(lambda result: (result[0], result[2]))
@@ -415,13 +415,16 @@ def parse_natural (input):
     pMULT_BINDING = pBINDING + ZeroOrMore(Suppress(",") + pBINDING)
     pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
 
-    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
+    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + OneOrMore(pEXPR)
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
-    pIF = pBOOLEAN + "?" + pEXPR + ":" + pEXPR
+    pIF = pEXPR + Keyword("?") + pEXPR + Keyword(":") + pEXPR
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pALGEBRA = pPARENS + pEXPR_REST
+    pALGEBRA_PARENS = "(" + pEXPR + ")" + pEXPR_REST
+    pALGEBRA_PARENS.setParseAction(lambda result: ECall(result[3], [result[1], result[4]]))
+
+    pALGEBRA = pINTEGER + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
     pPLUS = Keyword("+") + pEXPR
@@ -438,9 +441,12 @@ def parse_natural (input):
 
     pEXPR_REST << (pTIMES | pPLUS | pMINUS)
 
-    pEXPR << (pLET | pUSR_FUNC | pIF | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pSINGLE_EXPR)
+    pEXPR_META << (pIF | pEXPR)
 
-    result = pEXPR.parseString(input)[0]
+    pEXPR << (pALGEBRA_PARENS | pALGEBRA | pLET | pUSR_FUNC |  pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME)
+
+    result = pEXPR_META.parseString(input)[0]
+    # result = pEXPR.parseString(input)[0]
 
     if type(result) == dict:
         return {"result":"function", "name":result["name"], "params":result["params"], "body":result["body"]}
