@@ -268,8 +268,6 @@ INITIAL_FUN_DICT = {
 # cf http://pyparsing.wikispaces.com/
 
 def pLET_exps_unpack_nat(result):
-    print "UNPACK NATS"
-    print result
     i = 2
     exps = []
     while result[i] != ')':
@@ -424,7 +422,7 @@ def parse_natural (input):
     pALGEBRA_PARENS = "(" + pEXPR + ")" + pEXPR_REST
     pALGEBRA_PARENS.setParseAction(lambda result: ECall(result[3], [result[1], result[4]]))
 
-    pALGEBRA = pINTEGER + pEXPR_REST
+    pALGEBRA = pINTEGER|pIDENTIFIER + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
     pPLUS = Keyword("+") + pEXPR
@@ -443,7 +441,7 @@ def parse_natural (input):
 
     pEXPR_META << (pIF | pEXPR)
 
-    pEXPR << (pALGEBRA_PARENS | pALGEBRA | pLET | pUSR_FUNC |  pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME)
+    pEXPR << (pUSR_FUNC | pLET | pALGEBRA_PARENS | pALGEBRA  |  pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME)
 
     result = pEXPR_META.parseString(input)[0]
     # result = pEXPR.parseString(input)[0]
