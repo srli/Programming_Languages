@@ -294,6 +294,14 @@ def unpackLogic(input, booleanIn):
     else:
         return recurUnpack(input[2:], (not booleanIn))
 
+def unpackLetS(input):
+    print("INPUT", input, len(input))
+    if len(input) == 4:
+        print(input[0].__str__())
+        return ELet([input[0]], input[2])
+    else:
+        return ELet([input[0]], unpackLetS(input[1:]))   
+
 
 def parse (input):
     # parse a string into an element of the abstract representation
@@ -353,7 +361,10 @@ def parse (input):
     pOR = "(" +  Keyword("or") + ZeroOrMore(pEXPR) + ")"
     pOR.setParseAction(lambda result: unpackLogic(result, False))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pAND | pOR | pCALL)
+    pLetS = "(" + Keyword("let*") + "(" + OneOrMore(pBINDING) + ")" + pEXPR + ")"
+    pLetS.setParseAction(lambda result: unpackLetS(result[3:]))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pAND | pOR |pLetS| pCALL)
 
     # can't attach a parse action to pEXPR because of recursion, so let's duplicate the parser
     pTOPEXPR = pEXPR.copy()
