@@ -1,9 +1,10 @@
 ############################################################
 # HOMEWORK 3
 #
-# Team members:
+# Team members: Lindsey and Sophie
 #
-# Emails:
+# Emails: lindsey.vanderlyn@students.olin.edu and sophia.li@students.olin.edu
+#
 #
 # Remarks:
 #
@@ -360,10 +361,6 @@ def parse (input):
         return {"result":"expression", "expr":result}
 
 
-def print_result (inputa):
-    print "THIS IS RESULT: ", inputa
-    return inputa
-
 def parse_natural (input):
     # parse a string into an element of the abstract representation
 
@@ -387,8 +384,6 @@ def parse_natural (input):
     #   <expr-seq> ::= <expr> , <expr-seq>
     #                  <expr>
 
-    #TODO: fix result indexing
-
     idChars = alphas+"_+*-?!=<>"
 
     pIDENTIFIER = Word(idChars, idChars+"0123456789")
@@ -407,7 +402,7 @@ def parse_natural (input):
     pEXPR_META = Forward()
     pEXPR_REST = Forward()
 
-    pSINGLE_EXPR = "(" + pEXPR + ")"
+    pSINGLE_EXPR = "(" + pEXPR_META + ")"
     pSINGLE_EXPR.setParseAction(lambda result:result[1])
 
     pBINDING = pNAME + Keyword("=") + pEXPR
@@ -426,8 +421,8 @@ def parse_natural (input):
     pUSR_FUNC.setParseAction(lambda result: ECall(result[0], result[2:-1]))
 
     pEXPR_FIRST = pINTEGER | pIDENTIFIER | pSINGLE_EXPR | pLET | pUSR_FUNC
-    
-    pALGEBRA = pEXPR_FIRST + pEXPR_REST 
+
+    pALGEBRA = pEXPR_FIRST + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(result[1], [result[0], result[2]]))
 
     pPLUS = Keyword("+") + pEXPR
@@ -442,10 +437,10 @@ def parse_natural (input):
     pEXPR_REST << (pTIMES | pPLUS | pMINUS)
 
     pEXPR << (pLET | pUSR_FUNC | pALGEBRA | pINTEGER | pBOOLEAN | pIDENTIFIER | pNAME | pSINGLE_EXPR)
+
     pEXPR_META << (pIF | pEXPR)
 
     result = pEXPR_META.parseString(input)[0]
-    # result = pEXPR.parseString(input)[0]
     if type(result) == dict:
         return {"result":"function", "name":result["name"], "params":result["params"], "body":result["body"]}
     else:
