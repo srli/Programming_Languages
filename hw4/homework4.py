@@ -26,7 +26,7 @@ class EValue (Exp):
     # Value literal (could presumably replace EInteger and EBoolean)
     def __init__ (self,v):
         self._value = v
-    
+
     def __str__ (self):
         return "EValue({})".format(self._value)
 
@@ -187,7 +187,7 @@ class ECall (Exp):
         return ECall(self._name,new_es)
 
 
-    
+
 #
 # Values
 #
@@ -198,7 +198,7 @@ class Value (object):
 
 class VInteger (Value):
     # Value representation of integers
-    
+
     def __init__ (self,i):
         self.value = i
         self.type = "integer"
@@ -208,7 +208,7 @@ class VInteger (Value):
 
 class VBoolean (Value):
     # Value representation of Booleans
-    
+
     def __init__ (self,b):
         self.value = b
         self.type = "boolean"
@@ -220,7 +220,7 @@ class VBoolean (Value):
 
 # Primitive operations
 
-def oper_plus (v1,v2): 
+def oper_plus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
         return VInteger(v1.value + v2.value)
     raise Exception ("Runtime error: trying to add non-numbers")
@@ -272,6 +272,27 @@ INITIAL_FUN_DICT = {
 ## PARSER
 ##
 # cf http://pyparsing.wikispaces.com/
+
+def recurUnpack(input, booleanIn):
+    if not booleanIn:
+        if len(input) == 3:
+            return EIf(input[0], input[1], EBoolean(booleanIn))
+        else:
+            return EIf(input[0], recurUnpack(input[1:], booleanIn), EBoolean(booleanIn))
+    else:
+        if len(input) == 3:
+            return EIf(input[0], EBoolean(booleanIn), input[1])
+        else:
+            return EIf(input[0], EBoolean(booleanIn), recurUnpack(input[1:], booleanIn))
+
+
+def unpackLogic(input, booleanIn):
+    if len(input) == 3:
+        return EBoolean(booleanIn)
+    elif len(input) == 4:
+        return input[2]
+    else:
+        return recurUnpack(input[2:], (not booleanIn))
 
 
 def parse (input):
@@ -326,12 +347,18 @@ def parse (input):
     pCALL = "(" + pNAME + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pCALL)
+    pAND = "(" +  Keyword("and") + ZeroOrMore(pEXPR) + ")"
+    pAND.setParseAction(lambda result: unpackLogic(result, True))
+
+    pOR = "(" +  Keyword("or") + ZeroOrMore(pEXPR) + ")"
+    pOR.setParseAction(lambda result: unpackLogic(result, False))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pAND | pOR | pCALL)
 
     # can't attach a parse action to pEXPR because of recursion, so let's duplicate the parser
     pTOPEXPR = pEXPR.copy()
     pTOPEXPR.setParseAction(lambda result: {"result":"expression","expr":result[0]})
-    
+
     pDEFUN = "(" + Keyword("defun") + pNAME + "(" + pNAMES + ")" + pEXPR + ")"
     pDEFUN.setParseAction(lambda result: {"result":"function",
                                           "name":result[2],
@@ -352,7 +379,7 @@ def shell ():
 
     # work on a copy because we'll be adding to it
     fun_dict = INITIAL_FUN_DICT.copy()
-    
+
     while True:
         inp = raw_input("calc> ")
         if not inp:
@@ -373,4 +400,4 @@ def shell ():
 sys.setrecursionlimit(10000)
 
 
-##shell()
+shell()
