@@ -346,7 +346,6 @@ def parse (input):
     result = pTOP.parseString(input)[0]
     return result    # the first element of the result is the expression
 
-
 def shell ():
     # A simple shell
     # Repeatedly read a line of input, parse it, and evaluate the result
@@ -383,12 +382,8 @@ def shell ():
         except Exception as e:
             print "Exception: {}".format(e)
 
-
-
 # increase stack size to let us call recursive functions quasi comfortably
 sys.setrecursionlimit(10000)
-
-shell()
 
 def initial_env_curry ():
     # A sneaky way to allow functions to refer to functions that are not
@@ -437,10 +432,101 @@ def initial_env_curry ():
     env.extend(base)
     return env
 
+def parsePCallCurry(input):
+    if input[3] == ")":
+        return ECall(input[1], [[input[2]]])
+    else:
+        param = input.pop(-2)
+        return ECall(parsePCallCurry(input), [[param]])
+
+def parsePFuncCurry(input):
+    if input[4] == ")":
+        return EFunction([input[3]], input[5])
+    else:
+        param = input.pop(3)
+        return EFunction([param], parsePFuncCurry(input))
+
+def parsePDefunCurryRec(input):
+    print "INPUT: ", input
+    print "INDEX: ", input[-5]
+    print "INDEX: ", input[-7]
+
+    if input[6] == ")":
+        return EFunction([input[5]], input[-2])
+    else:
+        param = input.pop(5)
+        return EFunction([param], parsePDefunCurryRec(input))
+
+def parsePDefunCurry(input):
+    return {"result":"function",
+    "name":input[2],
+    "param":input[4],
+    "body":parsePDefunCurryRec(input)}
 
 def parse_curry (input):
-    raise Exception ("ERROR: parse_curry not implemented")
+    # parse a string into an element of the abstract representation
 
+    # Grammar:
+    #
+    # <expr> ::= <integer>
+    #            true
+    #            false
+    #            <identifier>
+    #            ( if <expr> <expr> <expr> )
+    #            ( let ( ( <name> <expr> ) ) <expr )
+    #            (function ( <name> ) <expr> )
+    #            ( <expr> <expr> )
+    #
+    # <definition> ::= ( defun <name> ( <name> ) <expr> )
+    #
+
+
+    idChars = alphas+"_+*-~/?!=<>"
+
+    pIDENTIFIER = Word(idChars, idChars+"0123456789")
+    pIDENTIFIER.setParseAction(lambda result: EId(result[0]))
+
+    # A name is like an identifier but it does not return an EId...
+    pNAME = Word(idChars,idChars+"0123456789")
+
+    pINTEGER = Word("0123456789")
+    pINTEGER.setParseAction(lambda result: EValue(VInteger(int(result[0]))))
+
+    pBOOLEAN = Keyword("true") | Keyword("false")
+    pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
+
+    pEXPR = Forward()
+
+    pIF = "(" + Keyword("if") + pEXPR + pEXPR + pEXPR + ")"
+    pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
+
+    pBINDING = "(" + pNAME + pEXPR + ")"
+    pBINDING.setParseAction(lambda result: (result[1],result[2]))
+
+    pBINDINGS = OneOrMore(pBINDING)
+    pBINDINGS.setParseAction(lambda result: [ result ])
+
+    pLET = "(" + Keyword("let") + "(" + pBINDINGS + ")" + pEXPR + ")"
+    pLET.setParseAction(lambda result: parsePLet(result))
+
+    pCALL = "(" + pEXPR + OneOrMore(pEXPR) + ")"
+    pCALL.setParseAction(lambda result: parsePCallCurry(result))
+
+    pFUN = "(" + Keyword("function") + "(" + OneOrMore(pNAME) + ")" + pEXPR + ")"
+    pFUN.setParseAction(lambda result: parsePFuncCurry(result))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pFUN | pCALL)
+
+    # can't attach a parse action to pEXPR because of recursion, so let's duplicate the parser
+    pTOPEXPR = pEXPR.copy()
+    pTOPEXPR.setParseAction(lambda result: {"result":"expression","expr":result[0]})
+
+    pDEFUN = "(" + Keyword("defun") + pNAME + "(" + OneOrMore(pNAME) + ")" + pEXPR + ")"
+    pDEFUN.setParseAction(lambda result: parsePDefunCurry(result))
+    pTOP = (pDEFUN | pTOPEXPR)
+
+    result = pTOP.parseString(input)[0]
+    return result    # the first element of the result is the expression
 
 def shell_curry ():
 
@@ -472,3 +558,5 @@ def shell_curry ():
 
         except Exception as e:
             print "Exception: {}".format(e)
+
+shell_curry()
