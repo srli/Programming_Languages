@@ -447,10 +447,6 @@ def parsePFuncCurry(input):
         return EFunction([param], parsePFuncCurry(input))
 
 def parsePDefunCurryRec(input):
-    print "INPUT: ", input
-    print "INDEX: ", input[-5]
-    print "INDEX: ", input[-7]
-
     if input[6] == ")":
         return EFunction([input[5]], input[-2])
     else:
