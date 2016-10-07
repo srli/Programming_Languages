@@ -97,6 +97,7 @@ class ECall (Exp):
 
     def __str__ (self):
         return "ECall({},{})".format(str(self._fun), [str(arg) for arg in self._args])
+        # return "ECall({},{})".format(str(self._fun), str(self._args))
 
     def eval (self,env):
         f = self._fun.eval(env)
@@ -269,8 +270,16 @@ def parsePDefun(input):
     "param":params,
     "body":body}
 
-def letUnimplementedError ():
-    raise Exception ("ERROR: let functionality not implemented yet")
+def parsePLet (input):
+    print "INPUT: ", input
+    bindings = input[3]
+    names = []
+    expressions = []
+    for binding in bindings:
+        names.append(binding[0])
+        expressions.append(binding[1])
+    function = input[5]
+    return ECall(EFunction(names, function), [expressions])
 
 def parse (input):
     # parse a string into an element of the abstract representation
@@ -316,7 +325,7 @@ def parse (input):
     pBINDINGS.setParseAction(lambda result: [ result ])
 
     pLET = "(" + Keyword("let") + "(" + pBINDINGS + ")" + pEXPR + ")"
-    pLET.setParseAction(lambda result: letUnimplementedError())
+    pLET.setParseAction(lambda result: parsePLet(result))
 
     pCALL = "(" + pEXPR + OneOrMore(pEXPR) + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],[result[2:-1]]))
