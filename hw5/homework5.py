@@ -118,7 +118,7 @@ class ECall (Exp):
         for i, arg in enumerate(self._args):
             new_env += [(f.params[i],arg.eval(env))]
         new_env += f.get_env(self._fun)
-        #
+
         # print "NEW_ENV: ", new_env
         # print "------\n"
         return f.body.eval(new_env)
@@ -138,8 +138,6 @@ class EFunction (Exp):
         if self._name:
             orig_env = copy.copy(env)
             env.extend([(self._name, VClosure(self._params, self._body, orig_env))])
-        else:
-            print "**NO NAME**"
 
         print "CLOSURE ENV: ", env
         return VClosure(self._params, self._body,env)
@@ -185,9 +183,19 @@ class VClosure (Value):
         return "<function {} {}>".format(self.params,str(self.body))
 
     def get_env(self, name):
-        if True not in [name == x for (x, y) in self.env]:
-            cur_closure = VClosure(self.params, self.body, self.env)
-            self.env.append((name, cur_closure))
+        if type(name) is EId:
+            if True not in [name._id == x for (x, y) in self.env]:
+                cur_closure = VClosure(self.params, self.body, self.env)
+                self.env.append((name._id, cur_closure))
+                print "GET_ENV NOT FOUND. NAME: ", name, " :: CLOSURE ENV: ", self.env
+                print "/////// \n"
+
+            else:
+                print "IN GET_ENV. NAME: ", name, " :: CLOSURE ENV: ", self.env
+                print "/////// \n"
+        else:
+            print "NOT EID"
+
         return self.env
 
 # Primitive operations
@@ -594,4 +602,4 @@ print "EXPRESSION: ", e
 f = e.eval(initial_env())
 
 print "FUNCTION: ", f
-ECall(EValue(f),[EValue(VInteger(10))]).eval([]).value
+print ECall(EValue(f),[EValue(VInteger(10))]).eval([]).value
