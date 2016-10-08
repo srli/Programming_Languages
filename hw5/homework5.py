@@ -11,7 +11,7 @@
 
 
 import sys
-
+import copy
 #
 # Expressions
 #
@@ -93,36 +93,56 @@ class ECall (Exp):
 
     def __init__ (self,fun,exps):
         self._fun = fun
-        self._args = exps[0]
+        if type(exps[0]) == list:
+            self._args = exps[0]
+        else:
+            self._args = exps
 
     def __str__ (self):
         return "ECall({},{})".format(str(self._fun), [str(arg) for arg in self._args])
         # return "ECall({},{})".format(str(self._fun), str(self._args))
 
     def eval (self,env):
+
         f = self._fun.eval(env)
+
+        print "FUNCTION: ", self._fun #, ":: ENV: ", f.env
+        print "***\n"
+
+
         if f.type != "function":
             raise Exception("Runtime error: trying to call a non-function")
+
+
         new_env = []
         for i, arg in enumerate(self._args):
             new_env += [(f.params[i],arg.eval(env))]
-        new_env += f.env
+        new_env += f.get_env(self._fun)
+        #
+        # print "NEW_ENV: ", new_env
+        # print "------\n"
         return f.body.eval(new_env)
 
 class EFunction (Exp):
     # Creates an anonymous function
 
-    def __init__ (self,params,body):
+    def __init__ (self,params,body, name=None):
         self._params = params
         self._body = body
+        self._name = name
 
     def __str__ (self):
         return "EFunction({},{})".format(self._params,str(self._body))
 
     def eval (self,env):
-        return VClosure(self._params,self._body,env)
+        if self._name:
+            orig_env = copy.copy(env)
+            env.extend([(self._name, VClosure(self._params, self._body, orig_env))])
+        else:
+            print "**NO NAME**"
 
-
+        print "CLOSURE ENV: ", env
+        return VClosure(self._params, self._body,env)
 #
 # Values
 #
@@ -164,7 +184,11 @@ class VClosure (Value):
     def __str__ (self):
         return "<function {} {}>".format(self.params,str(self.body))
 
-
+    def get_env(self, name):
+        if True not in [name == x for (x, y) in self.env]:
+            cur_closure = VClosure(self.params, self.body, self.env)
+            self.env.append((name, cur_closure))
+        return self.env
 
 # Primitive operations
 
@@ -555,4 +579,19 @@ def shell_curry ():
         except Exception as e:
             print "Exception: {}".format(e)
 
-shell_curry()
+# shell()
+# shell_curry()
+e = EFunction(["n"],
+                  EIf(ECall(EId("zero?"),[EId("n")]),
+		      EValue(VInteger(0)),
+		      ECall(EId("+"),[EId("n"),
+		                      ECall(EId("me"),[ECall(EId("-"),[EId("n"),EValue(VInteger(1))])])])),
+                  name="me")
+
+
+print "EXPRESSION: ", e
+
+f = e.eval(initial_env())
+
+print "FUNCTION: ", f
+ECall(EValue(f),[EValue(VInteger(10))]).eval([]).value
