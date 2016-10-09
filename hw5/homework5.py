@@ -12,7 +12,6 @@
 
 import sys
 import copy
-from pyparsing import Optional
 #
 # Expressions
 #
@@ -107,10 +106,6 @@ class ECall (Exp):
 
         f = self._fun.eval(env)
 
-        print "FUNCTION: ", self._fun #, ":: ENV: ", f.env
-        print "***\n"
-
-
         if f.type != "function":
             raise Exception("Runtime error: trying to call a non-function")
 
@@ -120,8 +115,6 @@ class ECall (Exp):
             new_env += [(f.params[i],arg.eval(env))]
         new_env += f.get_env(self._fun)
 
-        # print "NEW_ENV: ", new_env
-        # print "------\n"
         return f.body.eval(new_env)
 
 class EFunction (Exp):
@@ -140,7 +133,6 @@ class EFunction (Exp):
             orig_env = copy.copy(env)
             env.extend([(self._name, VClosure(self._params, self._body, orig_env))])
 
-        print "CLOSURE ENV: ", env
         return VClosure(self._params, self._body,env)
 #
 # Values
@@ -188,14 +180,6 @@ class VClosure (Value):
             if True not in [name._id == x for (x, y) in self.env]:
                 cur_closure = VClosure(self.params, self.body, self.env)
                 self.env.append((name._id, cur_closure))
-                print "GET_ENV NOT FOUND. NAME: ", name, " :: CLOSURE ENV: ", self.env
-                print "/////// \n"
-
-            else:
-                print "IN GET_ENV. NAME: ", name, " :: CLOSURE ENV: ", self.env
-                print "/////// \n"
-        else:
-            print "NOT EID"
 
         return self.env
 
@@ -277,14 +261,16 @@ def initial_env ():
 ##
 # cf http://pyparsing.wikispaces.com/
 
-from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums
+from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, Optional
 
 def parsePFunc(input):
-    i = 3
+    i = 2
     name = None
     if input[i] != "(":
         name = input[i]
         i+=1
+    i += 1
+
     args = []
     while input[i] != ")":
         args.append(input[i])
