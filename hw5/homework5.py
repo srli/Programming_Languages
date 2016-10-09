@@ -12,6 +12,7 @@
 
 import sys
 import copy
+from pyparsing import Optional
 #
 # Expressions
 #
@@ -280,12 +281,16 @@ from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, al
 
 def parsePFunc(input):
     i = 3
+    name = None
+    if input[i] != "(":
+        name = input[i]
+        i+=1
     args = []
     while input[i] != ")":
         args.append(input[i])
         i += 1
     expr = input[i+1]
-    return EFunction(args, expr)
+    return EFunction(args, expr, name)
 
 def parsePDefun(input):
     name = input[2]
@@ -362,7 +367,7 @@ def parse (input):
     pCALL = "(" + pEXPR + OneOrMore(pEXPR) + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],[result[2:-1]]))
 
-    pFUN = "(" + Keyword("function") + "(" + OneOrMore(pNAME) + ")" + pEXPR + ")"
+    pFUN = "(" + Keyword("function") + Optional(pNAME) + "(" + OneOrMore(pNAME) + ")" + pEXPR + ")"
     pFUN.setParseAction(lambda result: parsePFunc(result))
 
     pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pLET | pFUN | pCALL)
@@ -587,7 +592,7 @@ def shell_curry ():
         except Exception as e:
             print "Exception: {}".format(e)
 
-# shell()
+shell()
 # shell_curry()
 e = EFunction(["n"],
                   EIf(ECall(EId("zero?"),[EId("n")]),
