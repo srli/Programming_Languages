@@ -261,9 +261,29 @@ def oper_times (v1,v2):
         return VInteger(v1.value * v2.value)
     raise Exception ("Runtime error: trying to multiply non-numbers")
 
+def oper_greater_than (v1,v2):
+    if v1.type == "integer" and v2.type == "integer":
+        return VBoolean(v1.value > v2.value)
+    raise Exception ("Runtime error: trying to greater than non-numbers")
+
+def oper_less_than (v1,v2):
+    if v1.type == "integer" and v2.type == "integer":
+        return VBoolean(v1.value < v2.value)
+    raise Exception ("Runtime error: trying to less than non-numbers")
+
+def oper_equals (v1,v2):
+    if v1.type == "integer" and v2.type == "integer":
+        return VBoolean(v1.value == v2.value)
+    raise Exception ("Runtime error: trying to equal non-numbers")
+
 def oper_zero (v1):
     if v1.type == "integer":
         return VBoolean(v1.value==0)
+    raise Exception ("Runtime error: type error in zero?")
+
+def oper_not (v1):
+    if v1.type == "boolean":
+        return VBoolean(not v1.value)
     raise Exception ("Runtime error: type error in zero?")
 
 def oper_deref (v1):
@@ -322,10 +342,31 @@ def initial_env_imp ():
                 VRefCell(VClosure(["x"],
                                   EPrimCall(oper_zero,[EId("x")]),
                                   env))))
+    env.insert(0,
+               (">",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_greater_than,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("<",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_less_than,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("==",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_equals,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("not",
+                VRefCell(VClosure(["x"],
+                                  EPrimCall(oper_not,[EId("x")]),
+                                  env))))
     return env
 
 
-
+def createFor(result):
+    return result
 
 def parse_imp (input):
     # parse a string into an element of the abstract representation
@@ -414,6 +455,9 @@ def parse_imp (input):
     pSTMT_WHILE = "while" + pEXPR + pSTMT
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
 
+    pSTMT_FOR = "for" + pDECL_VAR + pCALL + ";" + pCALL + ";" + "(" + pEXPR + ")"
+    pSTMT_FOR.setParseAction(lambda result: createFor(result))
+
     pSTMT_PRINT = "print" + pEXPR + ";"
     pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print,[result[1]]));
 
@@ -430,7 +474,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_PRINT | pSTMT_UPDATE |  pSTMT_BLOCK )
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_UPDATE |  pSTMT_BLOCK )
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
@@ -489,3 +533,6 @@ def shell_imp ():
 
         except Exception as e:
             print "Exception: {}".format(e)
+
+shell_imp()
+# {var count = 10; while (not (zero? count)) (count <- (- count 1))}
