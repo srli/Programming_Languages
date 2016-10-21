@@ -366,7 +366,12 @@ def initial_env_imp ():
 
 
 def createFor(result):
-    return result
+    # print "WE GOT: ", result
+    # print "LEN: ", len(result)
+    res = ELet([(result[1][0], ERefCell(result[1][1]))], EDo([EWhile(EPrimCall(oper_not,[result[2]]), EDo([result[6], EPrimCall(oper_update, (EId(result[1][0]), result[4]))]))]))
+    #  EWhile(result[1],result[2])
+    print "WE'RE RETURNING: ", res.__str__()
+    return res
 
 def parse_imp (input):
     # parse a string into an element of the abstract representation
@@ -455,7 +460,7 @@ def parse_imp (input):
     pSTMT_WHILE = "while" + pEXPR + pSTMT
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
 
-    pSTMT_FOR = "for" + pDECL_VAR + pCALL + ";" + pCALL + ";" + "(" + pEXPR + ")"
+    pSTMT_FOR = "for" + pDECL_VAR + pCALL + ";" + pCALL + ";" + pSTMT
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
     pSTMT_PRINT = "print" + pEXPR + ";"
@@ -535,4 +540,4 @@ def shell_imp ():
             print "Exception: {}".format(e)
 
 shell_imp()
-# {var count = 10; while (not (zero? count)) (count <- (- count 1))}
+# {var count = 10; while (not (zero? count)) {count <- (- count 1);}}
