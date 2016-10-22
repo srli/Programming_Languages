@@ -8,3 +8,31 @@
 {var x = "#"hello"; print x;}
 
 {var x = "#""; print x;}
+
+length (returns the length of a string)
+{var s1 = "hello"; {print length s1;}} 
+Expect 5
+
+substring (returns part of a string as a new string)
+{var s1 = "substring"; {print substring s1 0 3}}
+Expect sub
+
+concat (concatenate two strings into a new one)
+{var s1 = "con"; {var s2 = "cat"; {print concat s1 s2;}}}
+Expect concat
+
+startswith (check if a string starts with another string)
+{var s1 = "substring"; {var s2 = "sub"; {print startswith? s1 s2;}}}
+Expect True
+
+endswith (check if a string ends with another string)
+{var s1 = "substring"; {var s2 = "sub"; {print startswith? s1 s2;}}}
+Expect False
+
+lower (converts every character of a string into lowercase, returning a new string)
+{var s1 = "HELLO"; {print lower "s1"}}
+Expect hello
+
+upper (converts every character of a string into uppercase, returning a new string).
+{var s1 = "hello"; {print upper s1;}}
+Expect HELLO
