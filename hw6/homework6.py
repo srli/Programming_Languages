@@ -182,7 +182,6 @@ class EWhile (Exp):
                 raise Exception ("Runtime error: while condition not a Boolean")
         return VNone()
 
-
 #
 # Values
 #
@@ -190,6 +189,14 @@ class EWhile (Exp):
 class Value (object):
     pass
 
+
+class VString (Value):
+    def __init__(self, s):
+        self.value = s
+        self.type = "string"
+
+    def __str__(self):
+        return self.value
 
 class VInteger (Value):
     # Value representation of integers
@@ -415,6 +422,11 @@ def parse_imp (input):
     pBOOLEAN = Keyword("true") | Keyword("false")
     pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
 
+    ESC_QUOTE = Literal("\"")
+
+    pSTRING = "\"" + ZeroOrMore(Word(idChars+"0123456789'")) + "\""
+    pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]))))
+
     pEXPR = Forward()
 
     pEXPRS = ZeroOrMore(pEXPR)
@@ -433,7 +445,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pIDENTIFIER | pIF | pFUN | pCALL)
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pIF | pFUN | pCALL)
 
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
