@@ -1,0 +1,10 @@
+{var count = 10; while (not (zero? count)) {count <- (- count 1); print count;}}
+
+{var res = 0; for (var count = 0;) (> count 10); (+ count 1); {res <- (- res 1);}}
+
+{for var count = 0; (> count 10); (+ count 1); {print count;}}
+
+{var x = "hello    world"; print x;}
+{var x = "#"hello"; print x;}
+
+{var x = "#""; print x;}
