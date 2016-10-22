@@ -293,6 +293,41 @@ def oper_not (v1):
         return VBoolean(not v1.value)
     raise Exception ("Runtime error: type error in zero?")
 
+def oper_length (s1):
+    if s1.type == "string":
+        return VInteger(len(s1.value))
+    raise Exception ("Runtime error: type error in oper_length")
+
+def oper_substring(s1, v1, v2):
+    if s1.type == "string" and v1.type == "integer" and v2.type == "integer":
+        return VString(s1.value[v1.value:v2.value])
+    raise Exception ("Runtime error: type error in oper_substring")
+
+def oper_concat (s1, s2):
+    if s1.type == "string" and s2.type == "string":
+        return VString(s1.value + s2.value)
+    raise Exception ("Runtime error: type error in oper_concat")
+
+def oper_startswith (s1, s2):
+    if s1.type == "string" and s2.type == "string":
+        return VBoolean(s1.value.startswith(s2.value))
+    raise Exception ("Runtime error: type error in oper_startswith")
+
+def oper_endswith (s1, s2):
+    if s1.type == "string" and s2.type == "string":
+        return VBoolean(s1.value.endswith(s2.value))
+    raise Exception ("Runtime error: type error in oper_endswith")
+
+def oper_lower (s1):
+    if s1.type == "string":
+        return VString(s1.value.lower())
+    raise Exception ("Runtime error: type error in oper_lower")
+
+def oper_upper (s1):
+    if s1.type == "string":
+        return VString(s1.value.upper())
+    raise Exception ("Runtime error: type error in oper_upper")
+
 def oper_deref (v1):
     if v1.type == "ref":
         return v1.content
@@ -322,7 +357,7 @@ def oper_print (v1):
 ##
 # cf http://pyparsing.wikispaces.com/
 
-from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch
+from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch, Combine
 
 
 def initial_env_imp ():
@@ -368,6 +403,41 @@ def initial_env_imp ():
                ("not",
                 VRefCell(VClosure(["x"],
                                   EPrimCall(oper_not,[EId("x")]),
+                                  env))))
+    env.insert(0,
+               ("length",
+                VRefCell(VClosure(["x"],
+                                  EPrimCall(oper_length,[EId("x")]),
+                                  env))))
+    env.insert(0,
+               ("substring",
+                VRefCell(VClosure(["x","y","z"],
+                                  EPrimCall(oper_substring,[EId("x"),EId("y"),EId("z")]),
+                                  env))))
+    env.insert(0,
+               ("concat",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_concat,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("startswith?",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_startswith,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("endswith?",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_endswith,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("lower",
+                VRefCell(VClosure(["x"],
+                                  EPrimCall(oper_lower,[EId("x")]),
+                                  env))))
+    env.insert(0,
+               ("upper",
+                VRefCell(VClosure(["x"],
+                                  EPrimCall(oper_upper,[EId("x")]),
                                   env))))
     return env
 
@@ -422,10 +492,9 @@ def parse_imp (input):
     pBOOLEAN = Keyword("true") | Keyword("false")
     pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
 
-    ESC_QUOTE = Literal("\"")
-
-    pSTRING = "\"" + ZeroOrMore(Word(idChars+"0123456789'")) + "\""
-    pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]))))
+    ESC_QUOTE = Literal("#\"")
+    pSTRING = "\"" + ZeroOrMore(Combine(Word(idChars+"0123456789'") | ESC_QUOTE)) + "\""
+    pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]).replace("#\"", "\""))))
 
     pEXPR = Forward()
 
