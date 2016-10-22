@@ -366,11 +366,7 @@ def initial_env_imp ():
 
 
 def createFor(result):
-    # print "WE GOT: ", result
-    # print "LEN: ", len(result)
     res = ELet([(result[1][0], ERefCell(result[1][1]))], EDo([EWhile(EPrimCall(oper_not,[result[2]]), EDo([result[6], EPrimCall(oper_update, (EId(result[1][0]), result[4]))]))]))
-    #  EWhile(result[1],result[2])
-    print "WE'RE RETURNING: ", res.__str__()
     return res
 
 def parse_imp (input):
