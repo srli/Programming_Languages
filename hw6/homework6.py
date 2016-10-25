@@ -194,6 +194,31 @@ class EArray (Exp):
         length = self._e1.eval(env)
         return VArray(length.value)
 
+class EWith (Exp):
+
+    def __init__ (self, obj1, e1):
+        self._obj1 = obj1
+        self._e1 = e1
+
+    def __str__(self):
+        return "EWith({},{})".format((str(self._obj1), str(self._e1)))
+
+    def eval(self, env):
+        print "GOT: ", self._e1
+
+        obj = self._obj1.eval(env)
+        print "EVAL: ", obj
+
+        methods = obj.methods
+
+        for m in methods:
+            env.insert(0, m)
+
+        print "METHODS: ", env
+        print "V1: ", v1
+        v1 = self._e1.eval(env)
+        return v1
+
 #
 # Values
 #
@@ -238,6 +263,17 @@ class VArray (Value):
         self.length = length
         self.values = [VNone() for i in range(length)]
         self.type = "array"
+        self.methods = [
+        ("index",
+         VRefCell(VClosure(["x"],
+                           EPrimCall(oper_index,[self, EId("x")]),
+                           [self]))), ("length",
+                            VRefCell(VClosure([],
+                                              EPrimCall(oper_length,[self]),
+                                              [self]))), ("map",
+                                               VRefCell(VClosure(["x"],
+                                                                 EPrimCall(oper_map,[self, EId("x")]),
+                                                                 [self])))]
 
     def __str__(self):
         return str(self.values)
@@ -274,6 +310,22 @@ class VNone (Value):
 
 
 # Primitive operations
+
+def oper_index(self, v1):
+    if self.type == "array" and v1.type == "integer":
+        return self.values[v1.value]
+    raise Exception ("Runtime error: incompatible types in index")
+
+def oper_length(self):
+    if self.type == "array":
+        return VInteger(self.length)
+    raise Exception ("Runtime error: trying to find length of non-array")
+
+def oper_map(self, f1):
+    if self.type == "array":
+        pass
+    raise Exception ("Runtime error: incompatible types in map")
+
 
 def oper_plus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
@@ -572,10 +624,18 @@ def parse_imp (input):
     pFUN = "(" + Keyword("function") + "(" + pNAMES + ")" + pEXPR + ")"
     pFUN.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3],result[5])))
 
+    def printRes(result):
+        print "GOT: ", result[2].__str__(), result[3].__str__()
+        print "RETURN: ", EWith(EId(result[2]), result[3])
+        return EWith(EId(result[2]), result[3])
+
+    pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
+    pWITH.setParseAction(lambda result: printRes(result))
+
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pCALL )
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING |pWITH| pIDENTIFIER | pARRAY | pIF | pFUN | pCALL)
 
     pSTMT = Forward()
 
