@@ -182,6 +182,18 @@ class EWhile (Exp):
                 raise Exception ("Runtime error: while condition not a Boolean")
         return VNone()
 
+class EArray (Exp):
+
+    def __init__ (self, e1):
+        self._e1 = e1
+
+    def __str__(self):
+        return "EArray({})".format(str(self._e1))
+
+    def eval (self, env):
+        length = self._e1.eval(env)
+        return VArray(length.value)
+
 #
 # Values
 #
@@ -219,6 +231,16 @@ class VBoolean (Value):
     def __str__ (self):
         return "true" if self.value else "false"
 
+class VArray (Value):
+    #Array of stuff
+
+    def __init__(self, length):
+        self.length = length
+        self.values = [VNone() for i in range(length)]
+        self.type = "array"
+
+    def __str__(self):
+        return str(self.values)
 
 class VClosure (Value):
 
@@ -336,6 +358,12 @@ def oper_deref (v1):
 def oper_update (v1,v2):
     if v1.type == "ref":
         v1.content = v2
+        return VNone()
+    raise Exception ("Runtime error: updating a non-reference value")
+
+def oper_update_arr (v1,v2,v3):
+    if v1.type == "ref":
+        v1.content.values[v2.value] = v3
         return VNone()
     raise Exception ("Runtime error: updating a non-reference value")
 
@@ -463,19 +491,16 @@ def createProcedure(result):
     return (procedure_name, EFunction(params, ELet(bindings,stmt)))
 
 def callProcedure(result):
-    # pSTMT_PROCEDURE = "(" + pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ")" + ";"
-    # procedure_name = result[1]
-    #
-    # params = []
-    # i = 3
-    # while result[i] != ")":
-    #     if result[i] != ",":
-    #         params.append(result[i])
-    #     i += 1
-    #
-    # return ECall(procedure_name, params)
-    print "GOT: ", result
-    return result
+    procedure_name = result[0]
+
+    params = []
+    i = 2
+    while result[i] != ")":
+        if result[i] != ",":
+            params.append(result[i])
+        i += 1
+
+    return ECall(EPrimCall(oper_deref,[EId(procedure_name)]), params)
 
 def parse_imp (input):
     # parse a string into an element of the abstract representation
@@ -523,6 +548,8 @@ def parse_imp (input):
     pBOOLEAN = Keyword("true") | Keyword("false")
     pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
 
+
+
     ESC_QUOTE = Literal("#\"")
     pSTRING = "\"" + ZeroOrMore(Combine(Word(idChars+"0123456789'") | ESC_QUOTE)) + "\""
     pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]).replace("#\"", "\""))))
@@ -535,6 +562,9 @@ def parse_imp (input):
     pIF = "(" + Keyword("if") + pEXPR + pEXPR + pEXPR + ")"
     pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
 
+    pARRAY = "(" + Keyword("new-array") + pEXPR + ")"
+    pARRAY.setParseAction(lambda result: EArray(result[2]))
+
     def mkFunBody (params,body):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
         return ELet(bindings,body)
@@ -545,7 +575,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pIF | pFUN | pCALL)
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pCALL )
 
     pSTMT = Forward()
 
@@ -570,6 +600,9 @@ def parse_imp (input):
     pSTMT_UPDATE = pNAME + "<-" + pEXPR + ";"
     pSTMT_UPDATE.setParseAction(lambda result: EPrimCall(oper_update,[EId(result[0]),result[2]]))
 
+    pSTMT_ARR_UPDATE = pNAME + "[" + pEXPR + "]" + "<-" + pEXPR + ";"
+    pSTMT_ARR_UPDATE.setParseAction(lambda result: EPrimCall(oper_update_arr, [EId(result[0]), result[2], result[5]]))
+
     pSTMT_PROCEDURE = pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ";"
     pSTMT_PROCEDURE.setParseAction(lambda result: callProcedure(result))
 
@@ -581,7 +614,7 @@ def parse_imp (input):
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
-    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
+    pDECL_PROCEDURE = "procedure" + pEXPR + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
     pDECL_PROCEDURE.setParseAction(lambda result: createProcedure(result))
 
     # hack to get pDECL to match only PDECL_VAR (but still leave room
@@ -598,7 +631,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_UPDATE |  pSTMT_BLOCK )
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_UPDATE | pSTMT_ARR_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
