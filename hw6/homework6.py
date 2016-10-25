@@ -446,6 +446,10 @@ def createFor(result):
     res = ELet([(result[1][0], ERefCell(result[1][1]))], EDo([EWhile(EPrimCall(oper_not,[result[2]]), EDo([result[6], EPrimCall(oper_update, (EId(result[1][0]), result[4]))]))]))
     return res
 
+def printResult(result):
+    print "GOT: ", result
+    return result
+
 def parse_imp (input):
     # parse a string into an element of the abstract representation
 
@@ -516,16 +520,6 @@ def parse_imp (input):
 
     pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pIF | pFUN | pCALL)
 
-    pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
-    pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
-
-    # hack to get pDECL to match only PDECL_VAR (but still leave room
-    # to add to pDECL later)
-    pDECL = ( pDECL_VAR | NoMatch() )
-
-    pDECLS = ZeroOrMore(pDECL)
-    pDECLS.setParseAction(lambda result: [result])
-
     pSTMT = Forward()
 
     pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT
@@ -537,7 +531,10 @@ def parse_imp (input):
     pSTMT_WHILE = "while" + pEXPR + pSTMT
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
 
-    pSTMT_FOR = "for" + pDECL_VAR + pCALL + ";" + pCALL + ";" + pSTMT
+    pFOR_VAR = "var" + pNAME + "=" + pEXPR + ";"
+    pFOR_VAR.setParseAction(lambda result: (result[1],result[3]))
+
+    pSTMT_FOR = "for" + pFOR_VAR + pCALL + ";" + pCALL + ";" + pSTMT
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
     pSTMT_PRINT = "print" + pEXPR + ";"
@@ -548,6 +545,21 @@ def parse_imp (input):
 
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
+
+#{procedure hello (1 2 3) {print 1;};}
+
+    pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
+    pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
+
+    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + pSTMT + ";"
+    pDECL_PROCEDURE.setParseAction(lambda result: printResult(result))
+
+    # hack to get pDECL to match only PDECL_VAR (but still leave room
+    # to add to pDECL later)
+    pDECL = ( pDECL_VAR | pDECL_PROCEDURE | NoMatch() )
+
+    pDECLS = ZeroOrMore(pDECL)
+    pDECLS.setParseAction(lambda result: [result])
 
     def mkBlock (decls,stmts):
         bindings = [ (n,ERefCell(expr)) for (n,expr) in decls ]
