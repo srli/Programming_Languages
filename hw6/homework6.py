@@ -204,18 +204,12 @@ class EWith (Exp):
         return "EWith({},{})".format((str(self._obj1), str(self._e1)))
 
     def eval(self, env):
-        print "GOT: ", self._e1
-
         obj = self._obj1.eval(env)
-        print "EVAL: ", obj
-
-        methods = obj.methods
+        methods = obj.content.methods
 
         for m in methods:
             env.insert(0, m)
 
-        print "METHODS: ", env
-        print "V1: ", v1
         v1 = self._e1.eval(env)
         return v1
 
@@ -264,19 +258,35 @@ class VArray (Value):
         self.values = [VNone() for i in range(length)]
         self.type = "array"
         self.methods = [
-        ("index",
-         VRefCell(VClosure(["x"],
-                           EPrimCall(oper_index,[self, EId("x")]),
-                           [self]))), ("length",
-                            VRefCell(VClosure([],
-                                              EPrimCall(oper_length,[self]),
-                                              [self]))), ("map",
-                                               VRefCell(VClosure(["x"],
-                                                                 EPrimCall(oper_map,[self, EId("x")]),
-                                                                 [self])))]
+                ("index",
+                VRefCell(VClosure(["x"],
+                       EPrimCall(self.oper_index,[EId("x")]),
+                       [self]))),
+                ("length",
+                VRefCell(VClosure([],
+                      EPrimCall(self.oper_length,[]),
+                      [self]))),
+                ("map",
+                VRefCell(VClosure(["x"],
+                     EPrimCall(self.oper_map,[EId("x")]),
+                     [self])))]
 
     def __str__(self):
         return str(self.values)
+
+    def oper_index(self, v1):
+        if v1.type == "integer":
+            return self.values[v1.value]
+        raise Exception ("Runtime error: incompatible types in index")
+
+    def oper_length(self):
+        return VInteger(self.length)
+
+    def oper_map(self, f1):
+        for i, v in enumerate(self.values):
+            new_env = zip(f1.params,[v]) + f1.env
+            self.values[i] = f1.body.eval(new_env)
+        return self
 
 class VClosure (Value):
 
@@ -311,20 +321,7 @@ class VNone (Value):
 
 # Primitive operations
 
-def oper_index(self, v1):
-    if self.type == "array" and v1.type == "integer":
-        return self.values[v1.value]
-    raise Exception ("Runtime error: incompatible types in index")
 
-def oper_length(self):
-    if self.type == "array":
-        return VInteger(self.length)
-    raise Exception ("Runtime error: trying to find length of non-array")
-
-def oper_map(self, f1):
-    if self.type == "array":
-        pass
-    raise Exception ("Runtime error: incompatible types in map")
 
 
 def oper_plus (v1,v2):
@@ -600,8 +597,6 @@ def parse_imp (input):
     pBOOLEAN = Keyword("true") | Keyword("false")
     pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
 
-
-
     ESC_QUOTE = Literal("#\"")
     pSTRING = "\"" + ZeroOrMore(Combine(Word(idChars+"0123456789'") | ESC_QUOTE)) + "\""
     pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]).replace("#\"", "\""))))
@@ -626,7 +621,6 @@ def parse_imp (input):
 
     def printRes(result):
         print "GOT: ", result[2].__str__(), result[3].__str__()
-        print "RETURN: ", EWith(EId(result[2]), result[3])
         return EWith(EId(result[2]), result[3])
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -635,7 +629,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING |pWITH| pIDENTIFIER | pARRAY | pIF | pFUN | pCALL)
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
 
     pSTMT = Forward()
 
@@ -674,7 +668,7 @@ def parse_imp (input):
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
-    pDECL_PROCEDURE = "procedure" + pEXPR + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
+    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
     pDECL_PROCEDURE.setParseAction(lambda result: createProcedure(result))
 
     # hack to get pDECL to match only PDECL_VAR (but still leave room
