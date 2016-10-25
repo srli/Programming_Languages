@@ -343,6 +343,8 @@ def oper_print (v1):
     print v1
     return VNone()
 
+def oper_nothing (v1):
+    return VNone()
 
 
 
@@ -446,7 +448,32 @@ def createFor(result):
     res = ELet([(result[1][0], ERefCell(result[1][1]))], EDo([EWhile(EPrimCall(oper_not,[result[2]]), EDo([result[6], EPrimCall(oper_update, (EId(result[1][0]), result[4]))]))]))
     return res
 
-def printResult(result):
+def createProcedure(result):
+    procedure_name = result[1]
+
+    params = []
+    i = 3
+    while result[i] != ")":
+        if result[i] != ",":
+            params.append(result[i])
+        i += 1
+    stmt = result[i+1]
+    bindings = [ (p,ERefCell(EId(p))) for p in params ]
+
+    return (procedure_name, EFunction(params, ELet(bindings,stmt)))
+
+def callProcedure(result):
+    # pSTMT_PROCEDURE = "(" + pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ")" + ";"
+    # procedure_name = result[1]
+    #
+    # params = []
+    # i = 3
+    # while result[i] != ")":
+    #     if result[i] != ",":
+    #         params.append(result[i])
+    #     i += 1
+    #
+    # return ECall(procedure_name, params)
     print "GOT: ", result
     return result
 
@@ -543,6 +570,9 @@ def parse_imp (input):
     pSTMT_UPDATE = pNAME + "<-" + pEXPR + ";"
     pSTMT_UPDATE.setParseAction(lambda result: EPrimCall(oper_update,[EId(result[0]),result[2]]))
 
+    pSTMT_PROCEDURE = pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ";"
+    pSTMT_PROCEDURE.setParseAction(lambda result: callProcedure(result))
+
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
 
@@ -551,8 +581,8 @@ def parse_imp (input):
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
-    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + pSTMT + ";"
-    pDECL_PROCEDURE.setParseAction(lambda result: printResult(result))
+    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
+    pDECL_PROCEDURE.setParseAction(lambda result: createProcedure(result))
 
     # hack to get pDECL to match only PDECL_VAR (but still leave room
     # to add to pDECL later)
