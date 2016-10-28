@@ -111,6 +111,7 @@ class ECall (Exp):
     def eval (self,env):
         f = self._fun.eval(env)
         if f.type != "function":
+            print "GOT: ", f
             raise Exception("Runtime error: trying to call a non-function")
         args = [ e.eval(env) for e in self._args]
         if len(args) != len(f.params):
@@ -551,6 +552,18 @@ def callProcedure(result):
 
     return ECall(EPrimCall(oper_deref,[EId(procedure_name)]), params)
 
+def parsePLet (input):
+    print "INPUT: ", input
+    bindings = input[3]
+    names = []
+    expressions = []
+    for binding in bindings:
+        names.append(binding[0])
+        expressions.append(binding[1])
+    function = input[5]
+    print "OUT: ", ECall(EFunction(names, function), [expressions])
+    return ECall(EFunction(names, function), [expressions])
+
 def parse_imp (input):
     # parse a string into an element of the abstract representation
 
@@ -620,7 +633,7 @@ def parse_imp (input):
     pFUN.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3],result[5])))
 
     def printRes(result):
-        print "GOT: ", result[2].__str__(), result[3].__str__()
+        # print "GOT: ", result[2].__str__(), result[3].__str__()
         return EWith(EId(result[2]), result[3])
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -629,7 +642,16 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
+    pBINDING = "(" + pNAME + pEXPR + ")"
+    pBINDING.setParseAction(lambda result: (result[1],result[2]))
+
+    pBINDINGS = OneOrMore(pBINDING)
+    pBINDINGS.setParseAction(lambda result: [ result ])
+
+    pLET = "(" + Keyword("let") + "(" + pBINDINGS + ")" + pEXPR + ")"
+    pLET.setParseAction(lambda result: parsePLet(result))
+
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pLET | pIF | pFUN | pWITH | pCALL)
 
     pSTMT = Forward()
 
@@ -747,23 +769,3 @@ def shell_imp ():
 
 shell_imp()
 # {var count = 10; while (not (zero? count)) {count <- (- count 1);}}
-
-# def sort(array=[12,4,5,6,7,3,1,15]):
-#     less = []
-#     equal = []
-#     greater = []
-#
-#     if len(array) > 1:
-#         pivot = array[0]
-#         for x in array:
-#             if x < pivot:
-#                 less.append(x)
-#             if x == pivot:
-#                 equal.append(x)
-#             if x > pivot:
-#                 greater.append(x)
-#         # Don't forget to return something!
-#         return sort(less)+equal+sort(greater)  # Just use the + operator to join lists
-#     # Note that you want equal ^^^^^ not pivot
-#     else:  # You need to hande the part at the end of the recursion - when you only have one element in your array, just return the array.
-#         return array
