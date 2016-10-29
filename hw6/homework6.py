@@ -6,7 +6,6 @@
 #
 
 import sys
-
 #
 # Expressions
 #
@@ -274,7 +273,7 @@ class VArray (Value):
                      [self])))]
 
     def __str__(self):
-        return str(self.values)
+        return "[" + ", ".join([str(j) for j in self.values]) + "]"
 
     def oper_index(self, v1):
         if v1.type == "integer":
@@ -290,6 +289,8 @@ class VArray (Value):
             self.values[i] = f1.body.eval(new_env)
         return self
 
+
+
 class VClosure (Value):
 
     def __init__ (self,params,body,env):
@@ -302,12 +303,10 @@ class VClosure (Value):
         return "<function [{}] {}>".format(",".join(self.params),str(self.body))
 
     def get_env(self, name):
-        print "GETTING ENVIRONMENT"
         if type(name) is EId:
             if True not in [name._id == x for (x, y) in self.env]:
                 cur_closure = VClosure(self.params, self.body, self.env)
                 self.env.append((name._id, cur_closure))
-            print "IM ADDING MYSEF"
 
         return self.env
 
@@ -356,10 +355,20 @@ def oper_greater_than (v1,v2):
         return VBoolean(v1.value > v2.value)
     raise Exception ("Runtime error: trying to greater than non-numbers")
 
+def oper_greater_eq_than (v1,v2):
+    if v1.type == "integer" and v2.type == "integer":
+        return VBoolean(v1.value >= v2.value)
+    raise Exception ("Runtime error: trying to greater equal than non-numbers")
+
 def oper_less_than (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
         return VBoolean(v1.value < v2.value)
     raise Exception ("Runtime error: trying to less than non-numbers")
+
+def oper_less_eq_than (v1,v2):
+    if v1.type == "integer" and v2.type == "integer":
+        return VBoolean(v1.value <= v2.value)
+    raise Exception ("Runtime error: trying to less equal than non-numbers")
 
 def oper_equals (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
@@ -428,6 +437,15 @@ def oper_update_arr (v1,v2,v3):
         return VNone()
     raise Exception ("Runtime error: updating a non-reference value")
 
+def oper_swap_arr (v1, v2, v3):
+    if v1.type == "array":
+        tempContent1 = v1.values[v2.value]
+        tempContent2 = v1.values[v3.value]
+        v1.values[v2.value] = tempContent2
+        v1.values[v3.value] = tempContent1
+        return v1
+    raise Exception ("Runtime error: updating a non-array value")
+
 def oper_print (v1):
     print v1
     return VNone()
@@ -481,9 +499,19 @@ def initial_env_imp ():
                                   EPrimCall(oper_greater_than,[EId("x"),EId("y")]),
                                   env))))
     env.insert(0,
+               (">=",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_greater_eq_than,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
                ("<",
                 VRefCell(VClosure(["x","y"],
                                   EPrimCall(oper_less_than,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("<=",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_less_eq_than,[EId("x"),EId("y")]),
                                   env))))
     env.insert(0,
                ("==",
@@ -530,6 +558,12 @@ def initial_env_imp ():
                 VRefCell(VClosure(["x"],
                                   EPrimCall(oper_upper,[EId("x")]),
                                   env))))
+    env.insert(0,
+               ("swap",
+                VRefCell(VClosure(["x","y","z"],
+                                  EPrimCall(oper_swap_arr,[EId("x"),EId("y"),EId("z")]),
+                                  env))))
+
     return env
 
 
@@ -657,13 +691,13 @@ def parse_imp (input):
 
     pSTMT = Forward()
 
-    pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT
+    pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[1],result[2],result[4]))
 
-    pSTMT_IF_2 = "if" + pEXPR + pSTMT
+    pSTMT_IF_2 = "if" + pEXPR + pSTMT + ";"
     pSTMT_IF_2.setParseAction(lambda result: EIf(result[1],result[2],EValue(VBoolean(True))))
 
-    pSTMT_WHILE = "while" + pEXPR + pSTMT
+    pSTMT_WHILE = "while" + pEXPR + pSTMT + ";"
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
 
     pFOR_VAR = "var" + pNAME + "=" + pEXPR + ";"
@@ -745,8 +779,22 @@ def shell_imp ():
     while True:
         inp = raw_input("imp> ")
 
+        if "quicksort" in inp:
+            with open("quicksort.txt", "r") as f:
+                data = f.read()
+                text = ""
+                for l in data:
+                    l = l.strip("\n")
+                    l = l.strip("\t")
+                    text += l
+                print "inputting: "
+                print text
+                print "\n see quicksort.txt for procedure implementation"
+                print "****** \n"
+            inp = text
+
         try:
-            result = parse_imp(inp)
+            result = parse_imp(text)
 
             if result["result"] == "statement":
                 stmt = result["stmt"]
@@ -770,4 +818,3 @@ def shell_imp ():
             print "Exception: {}".format(e)
 
 shell_imp()
-# {var count = 10; while (not (zero? count)) {count <- (- count 1);}}
