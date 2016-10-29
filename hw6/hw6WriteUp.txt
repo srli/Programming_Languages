@@ -1,0 +1,42 @@
+﻿Our Code:
+
+Creating a C-Style for loop:
+
+Our surface syntax tries to match a C-style loop as much as possible and should should be declared as for var decl; cond; increment; {action}
+As an example:
+
+imp> {for var count = 0; (> count 10); (+ count 1); {print count;}}
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+imp>
+
+One thing to note is the variable declaration although written the same way as any other declaration is parsed separately in order to keep decls separate from statements
+
+
+
+
+Procedures:
+
+Procedures are declared to take a name, one or more expressions and a statement. We then translate these into our calculator language in a very similar way to how functions are created.  For example a procedure to print 1 could look like this:
+	{procedure hello (a,b,c) {print 1;};}
+
+
+Due to the way the procedures are instantiated, calling them is done almost exactly the way calling a named function is. A procedure call takes a pName representing the name of the procedure and one or more pExpr representing the arguments the procedure expects. For example a procedure can be defined and called as in below
+	imp> {procedure plusTwo (x) {print (+ 2 x);}; plusTwo (2);}
+	4
+
+Due to the way procedures are interpreted, they already have some characteristics of first class functions in that they can take expressions as arguments
+	imp> {procedure plusTwo (x) {print (+ 2 x);}; plusTwo ((+ 2 (* 5 17)));}
+	89
+ 
+
+
