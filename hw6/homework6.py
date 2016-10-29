@@ -113,10 +113,11 @@ class ECall (Exp):
         if f.type != "function":
             print "GOT: ", f
             raise Exception("Runtime error: trying to call a non-function")
+
         args = [ e.eval(env) for e in self._args]
         if len(args) != len(f.params):
             raise Exception("Runtime error: argument # mismatch in call")
-        new_env = zip(f.params,args) + f.env
+        new_env = zip(f.params,args) + f.get_env(self._fun)
         return f.body.eval(new_env)
 
 
@@ -299,6 +300,16 @@ class VClosure (Value):
 
     def __str__ (self):
         return "<function [{}] {}>".format(",".join(self.params),str(self.body))
+
+    def get_env(self, name):
+        print "GETTING ENVIRONMENT"
+        if type(name) is EId:
+            if True not in [name._id == x for (x, y) in self.env]:
+                cur_closure = VClosure(self.params, self.body, self.env)
+                self.env.append((name._id, cur_closure))
+            print "IM ADDING MYSEF"
+
+        return self.env
 
 
 class VRefCell (Value):
@@ -642,16 +653,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pBINDING = "(" + pNAME + pEXPR + ")"
-    pBINDING.setParseAction(lambda result: (result[1],result[2]))
-
-    pBINDINGS = OneOrMore(pBINDING)
-    pBINDINGS.setParseAction(lambda result: [ result ])
-
-    pLET = "(" + Keyword("let") + "(" + pBINDINGS + ")" + pEXPR + ")"
-    pLET.setParseAction(lambda result: parsePLet(result))
-
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pLET | pIF | pFUN | pWITH | pCALL)
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
 
     pSTMT = Forward()
 
