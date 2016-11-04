@@ -185,15 +185,30 @@ class EWhile (Exp):
 
 class EArray (Exp):
 
-    def __init__ (self, e1):
-        self._e1 = e1
+    def __init__ (self, exps):
+        self._exps = exps
 
     def __str__(self):
         return "EArray({})".format(str(self._e1))
 
     def eval (self, env):
-        length = self._e1.eval(env)
-        return VArray(length.value)
+        vals = [e.eval(env) for e in self._exps]
+        return VArray(vals)
+
+class EDictionary (Exp):
+
+    def __init__(self, keys, values):
+        self._keys= keys
+        self._values = values
+
+    def __str__(self):
+        return "EDictionary({}, {})".format(str(self._keys), str(self._values))
+
+    def eval (self, env):
+        # keys_evaled = [k.eval(env) for k in self._keys]
+        keys_evaled = self._keys
+        values_evaled = [v.eval(env) for v in self._values]
+        return VDictionary(keys_evaled, values_evaled)
 
 class EWith (Exp):
 
@@ -254,9 +269,9 @@ class VBoolean (Value):
 class VArray (Value):
     #Array of stuff
 
-    def __init__(self, length):
-        self.length = length
-        self.values = [VNone() for i in range(length)]
+    def __init__(self, in_vals):
+        self.values = in_vals
+        self.length = len(self.values)
         self.type = "array"
         self.methods = [
                 ("index",
@@ -289,6 +304,15 @@ class VArray (Value):
             self.values[i] = f1.body.eval(new_env)
         return self
 
+class VDictionary (Value):
+    #Array of stuff
+
+    def __init__(self, keys, values):
+        self.values = dict(zip(keys, values))
+        self.type = "dictionary"
+
+    def __str__(self):
+        return "{" + ", ".join([str(k) for k in self.values]) + "}"
 
 
 class VClosure (Value):
@@ -683,8 +707,12 @@ def parse_imp (input):
     pIF = "(" + Keyword("if") + pEXPR + pEXPR + pEXPR + ")"
     pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
 
-    pARRAY = "(" + Keyword("new-array") + pEXPR + ")"
-    pARRAY.setParseAction(lambda result: EArray(result[2]))
+    pARRAY = "[" + Optional(pEXPR + OneOrMore("," + pEXPR)) + "]"
+    pARRAY.setParseAction(lambda result: EArray(result[1:-1][::2]))
+
+    pDICT_ELEM = pNAME + ":" + pEXPR
+    pDICT = "{" + Optional(pDICT_ELEM + OneOrMore("," + pDICT_ELEM)) + "}"
+    pDICT.setParseAction(lambda result: EDictionary(result[1:-1][::4], result[3:-1][::4]))
 
     def mkFunBody (params,body):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
@@ -693,17 +721,13 @@ def parse_imp (input):
     pFUN = "(" + Keyword("function") + "(" + pNAMES + ")" + pEXPR + ")"
     pFUN.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3],result[5])))
 
-    def printRes(result):
-        # print "GOT: ", result[2].__str__(), result[3].__str__()
-        return EWith(EId(result[2]), result[3])
-
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
-    pWITH.setParseAction(lambda result: printRes(result))
+    pWITH.setParseAction(lambda result: EWith(EId(result[2]), result[3]))
 
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
+    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pIF | pFUN | pWITH | pCALL)
 
     pSTMT = Forward()
 
@@ -736,8 +760,6 @@ def parse_imp (input):
 
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
-
-#{procedure hello (1 2 3) {print 1;};}
 
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
@@ -794,20 +816,6 @@ def shell_imp ():
 
     while True:
         inp = raw_input("imp> ")
-
-        if "quicksort" in inp:
-            with open("quicksort.txt", "r") as f:
-                data = f.read()
-                text = ""
-                for l in data:
-                    l = l.strip("\n")
-                    l = l.strip("\t")
-                    text += l
-                print "inputting: "
-                print text
-                print "\n see quicksort.txt for procedure implementation"
-                print "****** \n"
-            inp = text
 
         try:
             result = parse_imp(inp)
