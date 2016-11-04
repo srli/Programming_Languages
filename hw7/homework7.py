@@ -654,6 +654,7 @@ def parse_imp (input):
 
 
     idChars = alphas+"_+*-?!=<>"
+    oper_chars = "+*-=<>"
 
     pIDENTIFIER = Word(idChars, idChars+"0123456789")
     #### NOTE THE DIFFERENCE
@@ -661,6 +662,7 @@ def parse_imp (input):
 
     # A name is like an identifier but it does not return an EId...
     pNAME = Word(idChars,idChars+"0123456789")
+    pOPER = Word(oper_chars)
 
     pNAMES = ZeroOrMore(pNAME)
     pNAMES.setParseAction(lambda result: [result])
@@ -703,7 +705,21 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR << (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
+    pEXPR_REST = pOPER + pEXPR
+    pEXPR_REST.setParseAction(lambda result: result)
+
+
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pIF | pFUN | pWITH | pCALL)
+
+    def printRes(result):
+        print('GOT: ', [r.__str__() for r in result])
+        print("RETURN: ", ECall(result[1], [result[0], result[2]]).__str__())
+        return ECall(result[1], [result[0], result[2]])
+
+    pALGEBRA = pEXPR_FIRST + pEXPR_REST
+    pALGEBRA.setParseAction(lambda result: printRes(result))
+
+    pEXPR << (pALGEBRA | pEXPR_FIRST )
 
     pSTMT = Forward()
 
