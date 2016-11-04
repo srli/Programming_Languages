@@ -371,9 +371,20 @@ def oper_less_eq_than (v1,v2):
     raise Exception ("Runtime error: trying to less equal than non-numbers")
 
 def oper_equals (v1,v2):
-    if v1.type == "integer" and v2.type == "integer":
-        return VBoolean(v1.value == v2.value)
-    raise Exception ("Runtime error: trying to equal non-numbers")
+    accepted_types = ["integer", "boolean", "string", "array"]
+    if v1.type in accepted_types and v2.type in accepted_types:
+        if v1.type == "array":
+            for (i, e) in enumerate(v1.value):
+                if e.value != v2.value[i].value:
+                    return VBoolean(False)
+            return VBoolean(True)
+        else:
+            return VBoolean(v1.value == v2.value)
+    raise Exception ("Runtime error: trying to compute equality of non-values")
+
+def oper_not_equals (v1,v2):
+    eq = oper_equals(v1, v2)
+    return VBoolean(not(eq.value))
 
 def oper_zero (v1):
     if v1.type == "integer":
@@ -466,7 +477,7 @@ def oper_nothing (v1):
 ##
 # cf http://pyparsing.wikispaces.com/
 
-from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch, Combine
+from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch, Combine, Optional
 
 
 def initial_env_imp ():
@@ -517,6 +528,11 @@ def initial_env_imp ():
                ("==",
                 VRefCell(VClosure(["x","y"],
                                   EPrimCall(oper_equals,[EId("x"),EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("<>",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_not_equals,[EId("x"),EId("y")]),
                                   env))))
     env.insert(0,
                ("not",
@@ -649,8 +665,8 @@ def parse_imp (input):
     pNAMES = ZeroOrMore(pNAME)
     pNAMES.setParseAction(lambda result: [result])
 
-    pINTEGER = Word("0123456789")
-    pINTEGER.setParseAction(lambda result: EValue(VInteger(int(result[0]))))
+    pINTEGER = Optional("-") + Word("0123456789")
+    pINTEGER.setParseAction(lambda result: EValue(VInteger(int("".join(result)))))
 
     pBOOLEAN = Keyword("true") | Keyword("false")
     pBOOLEAN.setParseAction(lambda result: EValue(VBoolean(result[0]=="true")))
