@@ -703,6 +703,7 @@ def parse_imp (input):
 
     pEXPR = Forward()
     pSTMT = Forward()
+    pBODY = Forward()
 
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
@@ -722,10 +723,10 @@ def parse_imp (input):
         return ELet(bindings,body)
 
     def printRes(result):
-        print "GOT: ", result
+        print "GOT: ", [r.__str__() for r in result]
         return EFunction(result[3],mkFunBody(result[3],result[5]))
 
-    pFUN = Keyword("fun") + "(" + pNAMES + ")" + ";"# + pSTMT + ";"
+    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pSTMT + ";"
     pFUN.setParseAction(lambda result: printRes(result))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -734,7 +735,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pIF | pFUN | pWITH | pCALL)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pIDENTIFIER | pARRAY | pDICT | pIF | pWITH | pCALL)
     pEXPR_REST = pOPER + pEXPR
 
     pALGEBRA = pEXPR_FIRST + pEXPR_REST
@@ -791,6 +792,8 @@ def parse_imp (input):
 
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
+
+    pBODY << pSTMT_BLOCK
 
     pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_UPDATE | pSTMT_ARR_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
 
