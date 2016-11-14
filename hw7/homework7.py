@@ -703,13 +703,10 @@ def parse_imp (input):
 
     pEXPR = Forward()
     pSTMT = Forward()
-
+    pBODY = Forward()
 
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
-
-    pIF = "(" + Keyword("if") + pEXPR + pEXPR + pEXPR + ")"
-    pIF.setParseAction(lambda result: EIf(result[2],result[3],result[4]))
 
     pARRAY = "[" + Optional(pEXPR + OneOrMore("," + pEXPR)) + "]"
     pARRAY.setParseAction(lambda result: EArray(result[1:-1][::2]))
@@ -728,6 +725,7 @@ def parse_imp (input):
         # return EFunction(result[3],mkFunBody(result[3],result[5]))
 
     pFUN = "fun" + "(" + pNAME + ")" + ";"# + pSTMT + ";"
+
     pFUN.setParseAction(lambda result: printRes(result))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -736,7 +734,7 @@ def parse_imp (input):
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
 
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pIF | pFUN | pWITH | pCALL)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pIDENTIFIER | pARRAY | pDICT | pWITH | pCALL)
     pEXPR_REST = pOPER + pEXPR
 
     pALGEBRA = pEXPR_FIRST + pEXPR_REST
@@ -744,26 +742,26 @@ def parse_imp (input):
 
     pEXPR << (pALGEBRA | pEXPR_FIRST )
 
-    pSTMT_IF_1 = "if" + "(" + pEXPR  + ")" + pBODY + "else" + pBODY + ";"
-    pSTMT_IF_1.setParseAction(lambda result: EIf(result[1],result[2],result[4]))
+    pSTMT_IF_1 = Keyword("if") + "(" + pEXPR  + ")" + pSTMT + "else" + pSTMT + ";"
+    pSTMT_IF_1.setParseAction(lambda result: EIf(result[2],result[4],result[6]))
 
-    pSTMT_IF_2 = "if" + "(" + pEXPR  + ")" + pBODY + ";"
-    pSTMT_IF_2.setParseAction(lambda result: EIf(result[1],result[2],EValue(VBoolean(True))))
+    pSTMT_IF_2 = Keyword("if") + "(" + pEXPR + ")" + pSTMT + ";"
+    pSTMT_IF_2.setParseAction(lambda result: EIf(result[2],result[4],EValue(VBoolean(True))))
 
-    pSTMT_WHILE = "while" + "(" + pEXPR + ")" + pBODY + ";"
-    pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
+    pSTMT_WHILE = Keyword("while") + "(" + pEXPR + ")" + pSTMT + ";"
+    pSTMT_WHILE.setParseAction(lambda result: EWhile(result[2],result[4]))
 
-    pFOR_VAR = "var" + pNAME + "=" + pEXPR + ";"
-    pFOR_VAR.setParseAction(lambda result: (result[1],result[3]))
-
-    pSTMT_FOR = "for" + "(" + pNAME + "in" + pEXPR + ")" + pBODY
+    pSTMT_FOR = "for" + "(" + pNAME + "in" + pEXPR + ")" + pSTMT
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
-    pSTMT_PRINT = "print" + pEXPR + OneOrMore("," + pEXPR) + ";"
+    pSTMT_PRINT = "print" + pEXPR + ZeroOrMore("," + pEXPR) + ";"
     pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print,[result[1]])); #TODO: Fix oper_print
 
     pSTMT_ARR_UPDATE = pNAME + "[" + pEXPR + "]" + "=" + pEXPR + ";"
     pSTMT_ARR_UPDATE.setParseAction(lambda result: EPrimCall(oper_update_arr, [EId(result[0]), result[2], result[5]]))
+
+    pSTMT_UPDATE = pNAME + "=" + pEXPR + ";"
+    pSTMT_UPDATE.setParseAction(lambda result: EPrimCall(oper_update,[EId(result[0]),result[2]]))
 
     pSTMT_PROCEDURE = pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ";"
     pSTMT_PROCEDURE.setParseAction(lambda result: callProcedure(result))
@@ -791,7 +789,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_UPDATE | pSTMT_ARR_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
@@ -832,7 +830,7 @@ def shell_imp ():
 
             if result["result"] == "statement":
                 stmt = result["stmt"]
-                # print "Abstract representation:", exp
+                print "Abstract representation:", stmt
                 v = stmt.eval(env)
 
             elif result["result"] == "abstract":
