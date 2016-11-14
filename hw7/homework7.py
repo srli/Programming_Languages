@@ -704,6 +704,7 @@ def parse_imp (input):
     pEXPR = Forward()
     pSTMT = Forward()
 
+
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
 
@@ -723,9 +724,10 @@ def parse_imp (input):
 
     def printRes(result):
         print "GOT: ", result
-        return EFunction(result[3],mkFunBody(result[3],result[5]))
+        return None
+        # return EFunction(result[3],mkFunBody(result[3],result[5]))
 
-    pFUN = Keyword("fun") + "(" + pNAMES + ")" + ";"# + pSTMT + ";"
+    pFUN = "fun" + "(" + pNAME + ")" + ";"# + pSTMT + ";"
     pFUN.setParseAction(lambda result: printRes(result))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -742,28 +744,25 @@ def parse_imp (input):
 
     pEXPR << (pALGEBRA | pEXPR_FIRST )
 
-    pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT + ";"
+    pSTMT_IF_1 = "if" + "(" + pEXPR  + ")" + pBODY + "else" + pBODY + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[1],result[2],result[4]))
 
-    pSTMT_IF_2 = "if" + pEXPR + pSTMT + ";"
+    pSTMT_IF_2 = "if" + "(" + pEXPR  + ")" + pBODY + ";"
     pSTMT_IF_2.setParseAction(lambda result: EIf(result[1],result[2],EValue(VBoolean(True))))
 
-    pSTMT_WHILE = "while" + pEXPR + pSTMT + ";"
+    pSTMT_WHILE = "while" + "(" + pEXPR + ")" + pBODY + ";"
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[1],result[2]))
 
     pFOR_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pFOR_VAR.setParseAction(lambda result: (result[1],result[3]))
 
-    pSTMT_FOR = "for" + pFOR_VAR + pCALL + ";" + pCALL + ";" + pSTMT
+    pSTMT_FOR = "for" + "(" + pNAME + "in" + pEXPR + ")" + pBODY
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
-    pSTMT_PRINT = "print" + pEXPR + ";"
-    pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print,[result[1]]));
+    pSTMT_PRINT = "print" + pEXPR + OneOrMore("," + pEXPR) + ";"
+    pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print,[result[1]])); #TODO: Fix oper_print
 
-    pSTMT_UPDATE = pNAME + "<-" + pEXPR + ";"
-    pSTMT_UPDATE.setParseAction(lambda result: EPrimCall(oper_update,[EId(result[0]),result[2]]))
-
-    pSTMT_ARR_UPDATE = pNAME + "[" + pEXPR + "]" + "<-" + pEXPR + ";"
+    pSTMT_ARR_UPDATE = pNAME + "[" + pEXPR + "]" + "=" + pEXPR + ";"
     pSTMT_ARR_UPDATE.setParseAction(lambda result: EPrimCall(oper_update_arr, [EId(result[0]), result[2], result[5]]))
 
     pSTMT_PROCEDURE = pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ";"
