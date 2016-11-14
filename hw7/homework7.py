@@ -702,6 +702,7 @@ def parse_imp (input):
     pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]).replace("#\"", "\""))))
 
     pEXPR = Forward()
+    pSTMT = Forward()
 
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
@@ -720,15 +721,19 @@ def parse_imp (input):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
         return ELet(bindings,body)
 
-    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pEXPR + ";"
-    pFUN.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3],result[5])))
+    def printRes(result):
+        print "GOT: ", result
+        return EFunction(result[3],mkFunBody(result[3],result[5]))
+
+    pFUN = Keyword("fun") + "(" + pNAMES + ")" + ";"# + pSTMT + ";"
+    pFUN.setParseAction(lambda result: printRes(result))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
     pWITH.setParseAction(lambda result: EWith(EId(result[2]), result[3]))
 
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
- 
+
     pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pIF | pFUN | pWITH | pCALL)
     pEXPR_REST = pOPER + pEXPR
 
@@ -736,8 +741,6 @@ def parse_imp (input):
     pALGEBRA.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[1])]), [result[0], result[2]]))
 
     pEXPR << (pALGEBRA | pEXPR_FIRST )
-
-    pSTMT = Forward()
 
     pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[1],result[2],result[4]))
