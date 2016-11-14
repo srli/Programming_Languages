@@ -720,7 +720,7 @@ def parse_imp (input):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
         return ELet(bindings,body)
 
-    pFUN = "(" + Keyword("function") + "(" + pNAMES + ")" + pEXPR + ")"
+    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pEXPR + ";"
     pFUN.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3],result[5])))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
@@ -728,7 +728,7 @@ def parse_imp (input):
 
     pCALL = "(" + pEXPR + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
-
+ 
     pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pIF | pFUN | pWITH | pCALL)
     pEXPR_REST = pOPER + pEXPR
 
