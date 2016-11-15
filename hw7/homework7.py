@@ -126,6 +126,8 @@ class EFunction (Exp):
     def __init__ (self,params,body):
         self._params = params
         self._body = body
+        print(params)
+        print(body)
 
     def __str__ (self):
         return "EFunction([{}],{})".format(",".join(self._params),str(self._body))
@@ -420,6 +422,22 @@ def oper_not (v1):
         return VBoolean(not v1.value)
     raise Exception ("Runtime error: type error in zero?")
 
+def oper_and (v1, v2):
+    if v1.type == "boolean":
+        if v1.vale == False:
+            return VBoolean(False)
+        elif v2.type == "boolean":
+            return VBoolean(v1.value and v2.value)
+    raise Exception ("Runtime error: type error in AND")
+
+def oper_or (v1, v2):
+    if v1.type == "boolean":
+        if v1.vale == True:
+            return VBoolean(True)
+        elif v2.type == "boolean":
+            return VBoolean(v1.value and v2.value)
+    raise Exception ("Runtime error: type error in OR")
+
 def oper_length (s1):
     if s1.type == "string":
         return VInteger(len(s1.value))
@@ -472,6 +490,14 @@ def oper_update_arr (v1,v2,v3):
         return VNone()
     raise Exception ("Runtime error: updating a non-reference value")
 
+def oper_q (v1,v2,v3):
+    if v1.type == "boolean":
+        if v1.value == True:
+            return v2
+        else:
+            return v3
+    raise Exception ("Runtime error: problem with conditional assignment")
+
 def oper_swap_arr (v1, v2, v3):
     if v1.type == "array":
         tempContent1 = v1.values[v2.value]
@@ -501,7 +527,7 @@ def oper_nothing (v1):
 ##
 # cf http://pyparsing.wikispaces.com/
 
-from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch, Combine, Optional
+from pyparsing import Word, Literal, ZeroOrMore, OneOrMore, Keyword, Forward, alphas, alphanums, NoMatch, Combine, Optional, Suppress
 
 
 def initial_env_imp ():
@@ -564,6 +590,16 @@ def initial_env_imp ():
                                   EPrimCall(oper_not,[EId("x")]),
                                   env))))
     env.insert(0,
+               ("and",
+                VRefCell(VClosure(["x", "y"],
+                                  EPrimCall(oper_and,[EId("x"), EId("y")]),
+                                  env))))
+    env.insert(0,
+               ("or",
+                VRefCell(VClosure(["x", "y"],
+                                  EPrimCall(oper_or,[EId("x"), EId("y")]),
+                                  env))))    
+    env.insert(0,
                ("length",
                 VRefCell(VClosure(["x"],
                                   EPrimCall(oper_length,[EId("x")]),
@@ -602,6 +638,11 @@ def initial_env_imp ():
                ("swap",
                 VRefCell(VClosure(["x","y","z"],
                                   EPrimCall(oper_swap_arr,[EId("x"),EId("y"),EId("z")]),
+                                  env))))
+    env.insert(0,
+              ("swap",
+                VRefCell(VClosure(["x","y","z"],
+                                  EPrimCall(oper_q,[EId("x"),EId("y"),EId("z")]),
                                   env))))
 
     return env
@@ -649,6 +690,16 @@ def parsePLet (input):
     print "OUT: ", ECall(EFunction(names, function), [expressions])
     return ECall(EFunction(names, function), [expressions])
 
+
+def pLET_exps_unpack_nat(result):
+    i = 2
+    exps = []
+    while result[i] != ')':
+        exps.append(result[i])
+        i += 1
+    print(ELet(exps, result[i+1]))
+    return ELet(exps,result[i+1])
+
 def parse_imp (input):
     # parse a string into an element of the abstract representation
 
@@ -678,7 +729,7 @@ def parse_imp (input):
 
 
     idChars = alphas+"_+*-?!=<>"
-    oper_chars = "+*-=<>"
+    oper_chars = "+*-=<>?"
 
     pIDENTIFIER = Word(idChars, idChars+"0123456789")
     #### NOTE THE DIFFERENCE
@@ -686,7 +737,7 @@ def parse_imp (input):
 
     # A name is like an identifier but it does not return an EId...
     pNAME = Word(idChars,idChars+"0123456789")
-    pOPER = Word(oper_chars)
+    pOPER = Word(oper_chars) | "or" | "and" 
 
     pNAMES = ZeroOrMore(pNAME)
     pNAMES.setParseAction(lambda result: [result])
@@ -705,6 +756,15 @@ def parse_imp (input):
     pSTMT = Forward()
     pBODY = Forward()
 
+    pBINDING = pNAME + Keyword("=") + pEXPR
+    pBINDING.setParseAction(lambda result: (result[0], result[2]))
+
+    pMULT_BINDING = pBINDING + ZeroOrMore(Suppress(",") + pBINDING)
+    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
+
+    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
+    pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
+
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
 
@@ -715,33 +775,33 @@ def parse_imp (input):
     pARRAY.setParseAction(lambda result: EArray(result[1:-1][::2]))
 
     pDICT_ELEM = pNAME + ":" + pEXPR
-    pDICT = "{" + Optional(pDICT_ELEM + OneOrMore("," + pDICT_ELEM)) + "}"
+    pDICT = "{" + Optional(pDICT_ELEM + ZeroOrMore("," + pDICT_ELEM)) + "}"
     pDICT.setParseAction(lambda result: EDictionary(result[1:-1][::4], result[3:-1][::4]))
 
     def mkFunBody (params,body):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
         return ELet(bindings,body)
 
-    def printRes(result):
-        print "GOT: ", [r.__str__() for r in result]
-        return EFunction(result[3],mkFunBody(result[3],result[5]))
-
-    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pSTMT + ";"
-    pFUN.setParseAction(lambda result: printRes(result))
+    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pBODY #+ ";"
+    pFUN.setParseAction(lambda result: EFunction(result[2], mkFunBody(result[2],result[4])))
 
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
     pWITH.setParseAction(lambda result: EWith(EId(result[2]), result[3]))
 
-    pCALL = "(" + pEXPR + pEXPRS + ")"
-    pCALL.setParseAction(lambda result: ECall(result[1],result[2]))
+    pNOT = Keyword("not") + pEXPR
+    pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
 
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pIDENTIFIER | pARRAY | pDICT | pIF | pWITH | pCALL)
     pEXPR_REST = pOPER + pEXPR
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN |  pNOT | pLET | pIDENTIFIER | pARRAY | pDICT | pIF | pWITH )
+
+
+    pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
+    pCALL.setParseAction(lambda result: ECall(result[0],result[2]))
 
     pALGEBRA = pEXPR_FIRST + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[1])]), [result[0], result[2]]))
 
-    pEXPR << (pALGEBRA | pEXPR_FIRST )
+    pEXPR << (pCALL | pALGEBRA | pEXPR_FIRST)
 
     pSTMT_IF_1 = "if" + pEXPR + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[1],result[2],result[4]))
