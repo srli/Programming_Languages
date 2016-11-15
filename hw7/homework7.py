@@ -594,7 +594,7 @@ def initial_env_imp ():
                ("or",
                 VRefCell(VClosure(["x", "y"],
                                   EPrimCall(oper_or,[EId("x"), EId("y")]),
-                                  env))))    
+                                  env))))
     env.insert(0,
                ("length",
                 VRefCell(VClosure(["x"],
@@ -728,7 +728,7 @@ def parse_imp (input):
 
     # A name is like an identifier but it does not return an EId...
     pNAME = Word(idChars,idChars+"0123456789")
-    pOPER = Word(oper_chars) | "or" | "and" 
+    pOPER = Word(oper_chars) | "or" | "and"
 
     pNAMES = ZeroOrMore(pNAME)
     pNAMES.setParseAction(lambda result: [result])
@@ -783,7 +783,6 @@ def parse_imp (input):
 
     pEXPR_REST = pOPER + pEXPR
     pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pFUNrec | pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
-
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[0],result[2]))
