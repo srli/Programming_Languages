@@ -782,7 +782,7 @@ def parse_imp (input):
     pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
 
     pEXPR_REST = pOPER + pEXPR
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pFUNrec | pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pLET | pFUN | pFUNrec | pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[0],result[2]))
@@ -790,16 +790,17 @@ def parse_imp (input):
     pALGEBRA = pEXPR_FIRST + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[1])]), [result[0], result[2]]))
 
-    def printRes(result):
-        print result
-        return  ECall(EPrimCall(oper_deref,[EId(result[1])]), [result[0], result[2], result[4]])
-
     pEXPR_SIMPLE = (pCALL | pALGEBRA | pEXPR_FIRST)
 
     pIF = pEXPR_SIMPLE + Keyword("?") + pEXPR_SIMPLE + Keyword(":") + pEXPR_SIMPLE
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pEXPR << (pIF | pEXPR_SIMPLE)
+    pEXPR_MEDIUM = (pIF | pEXPR_SIMPLE)
+
+    pEXPR_PARENS = "(" + pEXPR_MEDIUM + ")"
+    pEXPR_PARENS.setParseAction(lambda result: result[1])
+
+    pEXPR << (pEXPR_PARENS| pEXPR_MEDIUM)
 
     pSTMT_IF_1 = Keyword("if") + "(" + pEXPR  + ")" + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[2],result[4],result[6]))
