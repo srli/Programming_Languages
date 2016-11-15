@@ -6,6 +6,7 @@
 #
 
 import sys
+import copy
 #
 # Expressions
 #
@@ -123,15 +124,20 @@ class ECall (Exp):
 class EFunction (Exp):
     # Creates an anonymous function
 
-    def __init__ (self,params,body):
+    def __init__ (self,params,body, name=None):
         self._params = params
         self._body = body
+        self._name = name
 
     def __str__ (self):
-        return "EFunction([{}],{})".format(",".join(self._params),str(self._body))
+        return "EFunction({},{})".format(self._params,str(self._body))
 
     def eval (self,env):
-        return VClosure(self._params,self._body,env)
+        if self._name:
+            orig_env = copy.copy(env)
+            env.extend([(self._name, VClosure(self._params, self._body, orig_env))])
+
+        return VClosure(self._params, self._body,env)
 
 
 class ERefCell (Exp):
@@ -766,6 +772,9 @@ def parse_imp (input):
     pFUN = Keyword("fun") + "(" + pNAMES + ")" + pSTMT #+ ";"
     pFUN.setParseAction(lambda result: EFunction(result[2], mkFunBody(result[2],result[4])))
 
+    pFUNrec = Keyword("fun") + pNAME + "(" + pNAMES + ")" + pSTMT
+    pFUNrec.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3], result[5]),name=result[2]))
+
     pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
     pWITH.setParseAction(lambda result: EWith(EId(result[2]), result[3]))
 
@@ -773,7 +782,7 @@ def parse_imp (input):
     pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
 
     pEXPR_REST = pOPER + pEXPR
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN |  pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pFUN | pFUNrec | pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
 
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
