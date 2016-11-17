@@ -7,6 +7,8 @@
 
 import sys
 import copy
+import argparse
+
 #
 # Expressions
 #
@@ -423,7 +425,7 @@ def oper_not (v1):
 
 def oper_and (v1, v2):
     if v1.type == "boolean":
-        if v1.vale == False:
+        if v1.value == False:
             return VBoolean(False)
         elif v2.type == "boolean":
             return VBoolean(v1.value and v2.value)
@@ -431,10 +433,12 @@ def oper_and (v1, v2):
 
 def oper_or (v1, v2):
     if v1.type == "boolean":
-        if v1.vale == True:
+        if v1.value == True:
             return VBoolean(True)
         elif v2.type == "boolean":
             return VBoolean(v1.value and v2.value)
+    print "T1: ", v1.type
+    print "T2: ", v2.type
     raise Exception ("Runtime error: type error in OR")
 
 def oper_length (s1):
@@ -841,44 +845,39 @@ def parse_imp (input):
     result = pTOP.parseString(input)[0]
     return result    # the first element of the result is the expression
 
-import argparse
 
-def shell():
-    env = initial_env_imp()
+env = initial_env_imp()
 
-    while True:
-        inp = raw_input("imp> ")
+def parse_single_line(text):
+    try:
+        result = parse_imp(text)
 
-        try:
-            result = parse_imp(inp)
+        if result["result"] == "statement":
+            stmt = result["stmt"]
+            print "Abstract representation:", stmt
+            v = stmt.eval(env)
 
-            if result["result"] == "statement":
-                stmt = result["stmt"]
-                print "Abstract representation:", stmt
-                v = stmt.eval(env)
+        elif result["result"] == "abstract":
+            print result["stmt"]
 
-            elif result["result"] == "abstract":
-                print result["stmt"]
+        elif result["result"] == "quit":
+            return
 
-            elif result["result"] == "quit":
-                return
-
-            elif result["result"] == "declaration":
-                (name,expr) = result["decl"]
-                v = expr.eval(env)
-                env.insert(0,(name,VRefCell(v)))
-                print "{} defined".format(name)
+        elif result["result"] == "declaration":
+            (name,expr) = result["decl"]
+            v = expr.eval(env)
+            env.insert(0,(name,VRefCell(v)))
+            print "{} defined".format(name)
 
 
-        except Exception as e:
-            print "Exception: {}".format(e)
+    except Exception as e:
+        print "Exception: {}".format(e)
 
 def shell_imp ():
     # A simple shell
     # Repeatedly read a line of input, parse it, and evaluate the result
 
     print "Homework 7 - Parser"
-    env = initial_env_imp()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", type=str, nargs="?")
@@ -886,9 +885,14 @@ def shell_imp ():
     args = parser.parse_args()
 
     if args.filename == None:
-        shell()
+        env = initial_env_imp()
 
-    # print args.filename
+        while True:
+            inp = raw_input("imp> ")
+            parse_single_line(inp)
+
+        return
+
     with open(args.filename, "r") as f:
         data = f.read()
         text = ""
@@ -896,38 +900,16 @@ def shell_imp ():
             l = l.strip("\n")
             l = l.strip("\t")
             text += l
-    # print text.split("def")
 
     functions = text.split("def")
-    # functions.append("main();")
 
     for elem in functions:
         if len(elem) > 1: #so empty lines aren't recognized
-            inp = "def" + elem
-            print inp
-            try:
-                result = parse_imp(inp)
+            if not elem.startswith("var"):
+                elem = "def" + elem
+            parse_single_line(elem)
 
-                if result["result"] == "statement":
-                    stmt = result["stmt"]
-                    print "Abstract representation:", stmt
-                    v = stmt.eval(env)
-
-                elif result["result"] == "abstract":
-                    print result["stmt"]
-
-                elif result["result"] == "quit":
-                    return
-
-                elif result["result"] == "declaration":
-                    (name,expr) = result["decl"]
-                    v = expr.eval(env)
-                    env.insert(0,(name,VRefCell(v)))
-                    print "{} defined".format(name)
-
-
-            except Exception as e:
-                print "Exception: {}".format(e)
+    parse_single_line("main();")
 
 
 
