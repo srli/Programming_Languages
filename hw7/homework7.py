@@ -701,37 +701,6 @@ def pLET_exps_unpack_nat(result):
     return ELet(exps,result[i+1])
 
 def parse_imp (input):
-    # parse a string into an element of the abstract representation
-
-    # Grammar:
-    # expr ::= integer literal                 # of the form 123 or -456
-    #    boolean literal                       # true , false
-    #    string literal                        # of the form "xyz"
-    #    id                                    # starts with a letter or _
-    #    expr + expr                           # adds integers / concatenates arrays / concatenates strings
-    #    expr * expr
-    #    expr - expr
-    #    expr == expr                          # equality (all types)
-    #    expr > expr                           # for integers and strings (lexicographic order)
-    #    expr >= expr                          # for integers and strings (lexicographic order)
-    #    expr < expr                           # for integers and strings (lexicographic order)
-    #    expr <= expr                          # for integers and strings (lexicographic order)
-    #    expr <> expr                          # this is "not equal" (all types)
-    #    expr and expr                         # short-circuiting
-    #    expr or expr                          # short-circuiting
-    #    not expr                                     
-    #    let ( id = expr , ... ) expr          # local binding
-    #    expr ? expr : expr                    # conditional
-    #    expr ( expr , ... )                   # function call
-    #    ( expr )
-    #    [ expr , ... ]                        # creates an array
-    #    fun ( id , ... ) body                 # anonymous function
-    #    fun id ( id , ... ) body              # recursive anonymous function
-    #    { id : expr , ... }                   # dictionary (record)
-    #    expr [ expr ]                         # array or string (a[2]) or dictionary (a["x"]) indexing  
-
-
-
     idChars = alphas+"_+*-?!=<>"
     oper_chars = "+*-=<>"
 
