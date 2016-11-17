@@ -835,16 +835,9 @@ def parse_imp (input):
     result = pTOP.parseString(input)[0]
     return result    # the first element of the result is the expression
 
+import argparse
 
-def shell_imp ():
-    # A simple shell
-    # Repeatedly read a line of input, parse it, and evaluate the result
-
-    print "Homework 6 - Imp Language"
-    print "#quit to quit, #abs to see abstract representation"
-    env = initial_env_imp()
-
-
+def shell():
     while True:
         inp = raw_input("imp> ")
 
@@ -871,5 +864,65 @@ def shell_imp ():
 
         except Exception as e:
             print "Exception: {}".format(e)
+
+def shell_imp ():
+    # A simple shell
+    # Repeatedly read a line of input, parse it, and evaluate the result
+
+    print "Homework 7 - Parser"
+    env = initial_env_imp()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename", type=str, nargs="?")
+
+    args = parser.parse_args()
+
+    if args.filename == None:
+        shell()
+
+    # print args.filename
+    with open(args.filename[0], "r") as f:
+        data = f.read()
+        text = ""
+        for l in data:
+            l = l.strip("\n")
+            l = l.strip("\t")
+            text += l
+    # print text.split("def")
+
+    functions = text.split("def")
+    # functions.append("main();")
+
+    for elem in functions:
+        if len(elem) > 1: #so empty lines aren't recognized
+            inp = "def" + elem
+            print inp
+            print "+++++++++++"
+            # try:
+            #     result = parse_imp(inp)
+            #
+            #     if result["result"] == "statement":
+            #         stmt = result["stmt"]
+            #         print "Abstract representation:", stmt
+            #         v = stmt.eval(env)
+            #
+            #     elif result["result"] == "abstract":
+            #         print result["stmt"]
+            #
+            #     elif result["result"] == "quit":
+            #         return
+            #
+            #     elif result["result"] == "declaration":
+            #         (name,expr) = result["decl"]
+            #         v = expr.eval(env)
+            #         env.insert(0,(name,VRefCell(v)))
+            #         print "{} defined".format(name)
+            #
+            #
+            # except Exception as e:
+            #     print "Exception: {}".format(e)
+
+
+
 
 shell_imp()
