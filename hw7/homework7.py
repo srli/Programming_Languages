@@ -503,6 +503,9 @@ def oper_swap_arr (v1, v2, v3):
         return v1
     raise Exception ("Runtime error: updating a non-array value")
 
+def oper_getelement (v1, v2):
+    return None
+
 def oper_print (v1):
     print v1
     return VNone()
@@ -635,6 +638,11 @@ def initial_env_imp ():
                 VRefCell(VClosure(["x","y","z"],
                                   EPrimCall(oper_swap_arr,[EId("x"),EId("y"),EId("z")]),
                                   env))))
+    env.insert(0,
+               ("getelement",
+                VRefCell(VClosure(["x","y"],
+                                  EPrimCall(oper_getelement,[EId("x"),EId("y")]),
+                                  env))))
 
     return env
 
@@ -753,7 +761,7 @@ def parse_imp (input):
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
     ##FIRST LAYER OF EXPRS
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pSINGLE_EXPR)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pFUN | pFUNrec | pIDENTIFIER | pNOT | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
