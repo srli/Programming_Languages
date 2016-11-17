@@ -138,7 +138,6 @@ class EFunction (Exp):
         if self._name:
             orig_env = copy.copy(env)
             env.extend([(self._name, VClosure(self._params, self._body, orig_env))])
-
         return VClosure(self._params, self._body,env)
 
 
@@ -479,6 +478,8 @@ def oper_upper (s1):
 def oper_deref (v1):
     if v1.type == "ref":
         return v1.content
+    print "V1 TYPE: ", v1.type
+    print "V1; ", v1
     raise Exception ("Runtime error: dereferencing a non-reference value")
 
 def oper_update (v1,v2):
@@ -731,7 +732,7 @@ def parse_imp (input):
     pFUN.setParseAction(lambda result: EFunction(result[2], mkFunBody(result[2],result[4])))
 
     pFUNrec = Keyword("fun") + pNAME + "(" + pNAMES + ")" + pSTMT
-    pFUNrec.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3], result[5]),name=result[2]))
+    pFUNrec.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3], result[5]),name=result[1]))
 
     pNOT = Keyword("not") + pEXPR
     pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
