@@ -503,8 +503,11 @@ def oper_getelement (v1, v2):
         return v1.values[v2.value]
     raise Exception ("Runtime error: trying to get values from non-array/dictionary")
 
-def oper_print (v1):
-    print v1
+def oper_print (*vs):
+    to_print = ""
+    for v in vs:
+        to_print += v.__str__()
+    print to_print
     return VNone()
 
 def oper_nothing (v1):
@@ -776,7 +779,7 @@ def parse_imp (input):
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
     pSTMT_PRINT = "print" + pEXPR + ZeroOrMore("," + pEXPR) + ";"
-    pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print,[result[1]])); #TODO: Fix oper_print
+    pSTMT_PRINT.setParseAction(lambda result: EPrimCall(oper_print, result[1:-1][::2])); #TODO: Fix oper_print
 
     pSTMT_ARR_UPDATE = pNAME + "[" + pEXPR + "]" + "=" + pEXPR + ";"
     pSTMT_ARR_UPDATE.setParseAction(lambda result: EPrimCall(oper_update_arr, [EId(result[0]), result[2], result[5]]))
@@ -903,29 +906,29 @@ def shell_imp ():
             inp = "def" + elem
             print inp
             print "+++++++++++"
-            try:
-                result = parse_imp(inp)
-
-                if result["result"] == "statement":
-                    stmt = result["stmt"]
-                    print "Abstract representation:", stmt
-                    v = stmt.eval(env)
-
-                elif result["result"] == "abstract":
-                    print result["stmt"]
-
-                elif result["result"] == "quit":
-                    return
-
-                elif result["result"] == "declaration":
-                    (name,expr) = result["decl"]
-                    v = expr.eval(env)
-                    env.insert(0,(name,VRefCell(v)))
-                    print "{} defined".format(name)
-
-
-            except Exception as e:
-                print "Exception: {}".format(e)
+            # try:
+            #     result = parse_imp(inp)
+            #
+            #     if result["result"] == "statement":
+            #         stmt = result["stmt"]
+            #         print "Abstract representation:", stmt
+            #         v = stmt.eval(env)
+            #
+            #     elif result["result"] == "abstract":
+            #         print result["stmt"]
+            #
+            #     elif result["result"] == "quit":
+            #         return
+            #
+            #     elif result["result"] == "declaration":
+            #         (name,expr) = result["decl"]
+            #         v = expr.eval(env)
+            #         env.insert(0,(name,VRefCell(v)))
+            #         print "{} defined".format(name)
+            #
+            #
+            # except Exception as e:
+            #     print "Exception: {}".format(e)
 
 
 
