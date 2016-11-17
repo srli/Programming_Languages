@@ -760,6 +760,9 @@ def parse_imp (input):
     pEXPR << (pCALL | pALGEBRA | pIF | pEXPR_FIRST)
 
     ########STATEMENTS
+    pSTMT_EXPR = pEXPR + ";"
+    pSTMT_EXPR.setParseAction(lambda result: result[0])
+
     pSTMT_IF_1 = Keyword("if") + "(" + pEXPR  + ")" + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[2],result[4],result[6]))
 
@@ -812,7 +815,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK)
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK | pSTMT_EXPR)
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
@@ -838,6 +841,8 @@ def parse_imp (input):
 import argparse
 
 def shell():
+    env = initial_env_imp()
+
     while True:
         inp = raw_input("imp> ")
 
@@ -881,7 +886,7 @@ def shell_imp ():
         shell()
 
     # print args.filename
-    with open(args.filename[0], "r") as f:
+    with open(args.filename, "r") as f:
         data = f.read()
         text = ""
         for l in data:
@@ -898,29 +903,29 @@ def shell_imp ():
             inp = "def" + elem
             print inp
             print "+++++++++++"
-            # try:
-            #     result = parse_imp(inp)
-            #
-            #     if result["result"] == "statement":
-            #         stmt = result["stmt"]
-            #         print "Abstract representation:", stmt
-            #         v = stmt.eval(env)
-            #
-            #     elif result["result"] == "abstract":
-            #         print result["stmt"]
-            #
-            #     elif result["result"] == "quit":
-            #         return
-            #
-            #     elif result["result"] == "declaration":
-            #         (name,expr) = result["decl"]
-            #         v = expr.eval(env)
-            #         env.insert(0,(name,VRefCell(v)))
-            #         print "{} defined".format(name)
-            #
-            #
-            # except Exception as e:
-            #     print "Exception: {}".format(e)
+            try:
+                result = parse_imp(inp)
+
+                if result["result"] == "statement":
+                    stmt = result["stmt"]
+                    print "Abstract representation:", stmt
+                    v = stmt.eval(env)
+
+                elif result["result"] == "abstract":
+                    print result["stmt"]
+
+                elif result["result"] == "quit":
+                    return
+
+                elif result["result"] == "declaration":
+                    (name,expr) = result["decl"]
+                    v = expr.eval(env)
+                    env.insert(0,(name,VRefCell(v)))
+                    print "{} defined".format(name)
+
+
+            except Exception as e:
+                print "Exception: {}".format(e)
 
 
 
