@@ -195,7 +195,7 @@ class EArray (Exp):
         self._exps = exps
 
     def __str__(self):
-        return "EArray({})".format(str(self._e1))
+        return "EArray({})".format(str(self._exps))
 
     def eval (self, env):
         vals = [e.eval(env) for e in self._exps]
@@ -211,8 +211,7 @@ class EDictionary (Exp):
         return "EDictionary({}, {})".format(str(self._keys), str(self._values))
 
     def eval (self, env):
-        # keys_evaled = [k.eval(env) for k in self._keys]
-        keys_evaled = self._keys
+        keys_evaled = [k.eval(env) for k in self._keys]
         values_evaled = [v.eval(env) for v in self._values]
         return VDictionary(keys_evaled, values_evaled)
 
@@ -314,7 +313,7 @@ class VDictionary (Value):
     #Array of stuff
 
     def __init__(self, keys, values):
-        self.values = dict(zip(keys, values))
+        self.values = dict(zip([k.value for k in keys], values))
         self.type = "dictionary"
 
     def __str__(self):
@@ -361,10 +360,6 @@ class VNone (Value):
 
 
 # Primitive operations
-
-
-
-
 def oper_plus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
         return VInteger(v1.value + v2.value)
@@ -504,7 +499,9 @@ def oper_swap_arr (v1, v2, v3):
     raise Exception ("Runtime error: updating a non-array value")
 
 def oper_getelement (v1, v2):
-    return None
+    if v1.type == "array" or v1.type == "dictionary":
+        return v1.values[v2.value]
+    raise Exception ("Runtime error: trying to get values from non-array/dictionary")
 
 def oper_print (v1):
     print v1
@@ -653,7 +650,6 @@ def createFor(result):
 
 def createProcedure(result):
     procedure_name = result[1]
-
     params = []
     i = 3
     while result[i] != ")":
@@ -738,7 +734,7 @@ def parse_imp (input):
     pARRAY = "[" + Optional(pEXPR + OneOrMore("," + pEXPR)) + "]"
     pARRAY.setParseAction(lambda result: EArray(result[1:-1][::2]))
 
-    pDICT_ELEM = pNAME + ":" + pEXPR
+    pDICT_ELEM = (pINTEGER | pSTRING) + ":" + pEXPR
     pDICT = "{" + Optional(pDICT_ELEM + ZeroOrMore("," + pDICT_ELEM)) + "}"
     pDICT.setParseAction(lambda result: EDictionary(result[1:-1][::4], result[3:-1][::4]))
 
@@ -755,12 +751,15 @@ def parse_imp (input):
     pNOT = Keyword("not") + pEXPR
     pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
 
+    pINDEX = pNAME + "[" + pEXPR + "]"
+    pINDEX.setParseAction(lambda result: EPrimCall(oper_getelement, [EPrimCall(oper_deref,[EId(result[0])]), result[2]]))
+
     pBINDING = pNAME + Keyword("=") + pEXPR
     pLET = Keyword("let") + "(" + pBINDING + ZeroOrMore("," + pBINDING) + ")" + pEXPR
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
     ##FIRST LAYER OF EXPRS
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pFUN | pFUNrec | pIDENTIFIER | pNOT | pSINGLE_EXPR)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pINDEX | pFUN | pFUNrec | pIDENTIFIER | pNOT | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
@@ -796,17 +795,20 @@ def parse_imp (input):
     pSTMT_UPDATE = pNAME + "=" + pEXPR + ";"
     pSTMT_UPDATE.setParseAction(lambda result: EPrimCall(oper_update,[EId(result[0]),result[2]]))
 
-    pSTMT_PROCEDURE = pNAME + "(" + pEXPR + ZeroOrMore("," + pEXPR) + ")" + ";"
+    pSTMT_PROCEDURE = pNAME + "(" + Optional(pEXPR + ZeroOrMore("," + pEXPR)) + ")" + ";"
     pSTMT_PROCEDURE.setParseAction(lambda result: callProcedure(result))
 
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
 
     ######DECLARATIONS
+    pDECL_EMPTY = "var" + pNAME + ";"
+    pDECL_EMPTY.setParseAction(lambda result: (result[1], EValue(None)))
+
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
-    pDECL_PROCEDURE = "procedure" + pNAME + "(" + pNAME + ZeroOrMore("," + pNAME) + ")" + pSTMT + ";"
+    pDECL_PROCEDURE = "def" + pNAME + "(" + Optional(pNAME + ZeroOrMore("," + pNAME)) + ")" + pSTMT
     pDECL_PROCEDURE.setParseAction(lambda result: createProcedure(result))
 
     # hack to get pDECL to match only PDECL_VAR (but still leave room
