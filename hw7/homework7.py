@@ -673,28 +673,6 @@ def callProcedure(result):
 
     return ECall(EPrimCall(oper_deref,[EId(procedure_name)]), params)
 
-def parsePLet (input):
-    print "INPUT: ", input
-    bindings = input[2]
-    names = []
-    expressions = []
-    for binding in bindings:
-        print("BINDING: ", binding)
-        names.append(binding[0])
-        expressions.append(binding[1])
-    function = input[4]
-    print "OUT: ", ECall(EFunction(names, function), [expressions])
-    return ECall(EFunction(names, function), [expressions])
-
-def pLET_exps_unpack_nat(result):
-    i = 2
-    exps = []
-    while result[i] != ')':
-        exps.append(result[i])
-        i += 1
-    print("EXPS: ", exps)
-    print("RETURNING: ", ELet(exps, result[i+1]).__str__())
-    return ELet(exps,result[i+1])
 
 def parse_imp (input):
     idChars = alphas+"_+*-?!=<>"
@@ -754,12 +732,20 @@ def parse_imp (input):
     pINDEX = pNAME + "[" + pEXPR + "]"
     pINDEX.setParseAction(lambda result: EPrimCall(oper_getelement, [EPrimCall(oper_deref,[EId(result[0])]), result[2]]))
 
-    pBINDING = pNAME + Keyword("=") + pEXPR
-    pLET = Keyword("let") + "(" + pBINDING + ZeroOrMore("," + pBINDING) + ")" + pEXPR
-    pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
+    pBINDING = pNAME + "=" + pEXPR
+    pBINDING.setParseAction(lambda result: (result[0],ERefCell(result[2])))
+
+    pBINDING_comma = "," + pBINDING
+    pBINDING_comma.setParseAction(lambda result: result[1])
+
+    pBINDINGS = pBINDING + ZeroOrMore(pBINDING_comma)
+    pBINDINGS.setParseAction(lambda result: [ result ])
+
+    pLET = Keyword("let") + "(" + pBINDINGS + ")" + pEXPR
+    pLET.setParseAction(lambda result: ELet(result[2],result[4]))
 
     ##FIRST LAYER OF EXPRS
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pINDEX | pFUN | pFUNrec | pIDENTIFIER | pNOT | pSINGLE_EXPR)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pLET | pIDENTIFIER | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
