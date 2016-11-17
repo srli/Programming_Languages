@@ -510,7 +510,7 @@ def oper_getelement (v1, v2):
 def oper_print (*vs):
     to_print = ""
     for v in vs:
-        to_print += v.__str__()
+        to_print += v.__str__() + " "
     print to_print
     return VNone()
 
@@ -846,72 +846,71 @@ def parse_imp (input):
     return result    # the first element of the result is the expression
 
 
-env = initial_env_imp()
+class Shell():
+    def __init__(self):
+        self.env = initial_env_imp()
 
-def parse_single_line(text):
-    try:
-        result = parse_imp(text)
+    def parse_single_line(self, text):
+        try:
+            result = parse_imp(text)
 
-        if result["result"] == "statement":
-            stmt = result["stmt"]
-            print "Abstract representation:", stmt
-            v = stmt.eval(env)
+            if result["result"] == "statement":
+                stmt = result["stmt"]
+                print "Abstract representation:", stmt
+                v = stmt.eval(self.env)
 
-        elif result["result"] == "abstract":
-            print result["stmt"]
+            elif result["result"] == "abstract":
+                print result["stmt"]
 
-        elif result["result"] == "quit":
+            elif result["result"] == "quit":
+                return
+
+            elif result["result"] == "declaration":
+                (name,expr) = result["decl"]
+                v = expr.eval(self.env)
+                self.env.insert(0,(name,VRefCell(v)))
+                print "{} defined".format(name)
+
+
+        except Exception as e:
+            print "Exception: {}".format(e)
+
+    def shell_imp (self):
+        # A simple shell
+        # Repeatedly read a line of input, parse it, and evaluate the result
+
+        print "Homework 7 - Parser"
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument("filename", type=str, nargs="?")
+
+        args = parser.parse_args()
+
+        if args.filename == None:
+
+            while True:
+                inp = raw_input("imp> ")
+                self.parse_single_line(inp)
+
             return
 
-        elif result["result"] == "declaration":
-            (name,expr) = result["decl"]
-            v = expr.eval(env)
-            env.insert(0,(name,VRefCell(v)))
-            print "{} defined".format(name)
+        with open(args.filename, "r") as f:
+            data = f.read()
+            text = ""
+            for l in data:
+                l = l.strip("\n")
+                l = l.strip("\t")
+                text += l
 
+        functions = text.split("def")
 
-    except Exception as e:
-        print "Exception: {}".format(e)
+        for elem in functions:
+            if len(elem) > 1: #so empty lines aren't recognized
+                if not elem.startswith("var"):
+                    elem = "def" + elem
+                self.parse_single_line(elem)
 
-def shell_imp ():
-    # A simple shell
-    # Repeatedly read a line of input, parse it, and evaluate the result
+        self.parse_single_line("main();")
 
-    print "Homework 7 - Parser"
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("filename", type=str, nargs="?")
-
-    args = parser.parse_args()
-
-    if args.filename == None:
-        env = initial_env_imp()
-
-        while True:
-            inp = raw_input("imp> ")
-            parse_single_line(inp)
-
-        return
-
-    with open(args.filename, "r") as f:
-        data = f.read()
-        text = ""
-        for l in data:
-            l = l.strip("\n")
-            l = l.strip("\t")
-            text += l
-
-    functions = text.split("def")
-
-    for elem in functions:
-        if len(elem) > 1: #so empty lines aren't recognized
-            if not elem.startswith("var"):
-                elem = "def" + elem
-            parse_single_line(elem)
-
-    parse_single_line("main();")
-
-
-
-
-shell_imp()
+s = Shell()
+s.shell_imp()
