@@ -905,30 +905,29 @@ def shell_imp ():
         if len(elem) > 1: #so empty lines aren't recognized
             inp = "def" + elem
             print inp
-            print "+++++++++++"
-            # try:
-            #     result = parse_imp(inp)
-            #
-            #     if result["result"] == "statement":
-            #         stmt = result["stmt"]
-            #         print "Abstract representation:", stmt
-            #         v = stmt.eval(env)
-            #
-            #     elif result["result"] == "abstract":
-            #         print result["stmt"]
-            #
-            #     elif result["result"] == "quit":
-            #         return
-            #
-            #     elif result["result"] == "declaration":
-            #         (name,expr) = result["decl"]
-            #         v = expr.eval(env)
-            #         env.insert(0,(name,VRefCell(v)))
-            #         print "{} defined".format(name)
-            #
-            #
-            # except Exception as e:
-            #     print "Exception: {}".format(e)
+            try:
+                result = parse_imp(inp)
+
+                if result["result"] == "statement":
+                    stmt = result["stmt"]
+                    print "Abstract representation:", stmt
+                    v = stmt.eval(env)
+
+                elif result["result"] == "abstract":
+                    print result["stmt"]
+
+                elif result["result"] == "quit":
+                    return
+
+                elif result["result"] == "declaration":
+                    (name,expr) = result["decl"]
+                    v = expr.eval(env)
+                    env.insert(0,(name,VRefCell(v)))
+                    print "{} defined".format(name)
+
+
+            except Exception as e:
+                print "Exception: {}".format(e)
 
 
 
