@@ -752,6 +752,7 @@ def parse_imp (input):
     pLET = Keyword("let") + "(" + pBINDING + ZeroOrMore("," + pBINDING) + ")" + pEXPR
     pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
 
+    ##FIRST LAYER OF EXPRS
     pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
 
@@ -766,8 +767,7 @@ def parse_imp (input):
 
     pEXPR << (pCALL | pALGEBRA | pIF | pEXPR_FIRST)
 
-
-    ###STATEMENTS
+    ########STATEMENTS
     pSTMT_IF_1 = Keyword("if") + "(" + pEXPR  + ")" + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[2],result[4],result[6]))
 
@@ -795,6 +795,7 @@ def parse_imp (input):
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
 
+    ######DECLARATIONS
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
@@ -808,6 +809,7 @@ def parse_imp (input):
     pDECLS = ZeroOrMore(pDECL)
     pDECLS.setParseAction(lambda result: [result])
 
+    #######STATEMENT BLOCK
     def mkBlock (decls,stmts):
         bindings = [ (n,ERefCell(expr)) for (n,expr) in decls ]
         return ELet(bindings,EDo(stmts))
@@ -815,7 +817,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK)
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
