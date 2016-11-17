@@ -682,7 +682,6 @@ def parsePLet (input):
     print "OUT: ", ECall(EFunction(names, function), [expressions])
     return ECall(EFunction(names, function), [expressions])
 
-
 def pLET_exps_unpack_nat(result):
     i = 2
     exps = []
@@ -728,8 +727,8 @@ def parse_imp (input):
     idChars = alphas+"_+*-?!=<>"
     oper_chars = "+*-=<>"
 
+    ######VALUES
     pIDENTIFIER = Word(idChars, idChars+"0123456789")
-    #### NOTE THE DIFFERENCE
     pIDENTIFIER.setParseAction(lambda result: EPrimCall(oper_deref,[EId(result[0])]))
 
     # A name is like an identifier but it does not return an EId...
@@ -749,20 +748,15 @@ def parse_imp (input):
     pSTRING = "\"" + ZeroOrMore(Combine(Word(idChars+"0123456789'") | ESC_QUOTE)) + "\""
     pSTRING.setParseAction(lambda result: EValue(VString(" ".join(result[1:-1]).replace("#\"", "\""))))
 
+    #####FORWARD VARS FOR THE PARSER
     pEXPR = Forward()
     pSTMT = Forward()
 
-    pBINDING = pNAME + Keyword("=") + pEXPR
-    pBINDING.setParseAction(lambda result: (result[0], result[2]))
-
-    pMULT_BINDING = pBINDING + ZeroOrMore(Suppress(",") + pBINDING)
-    pMULT_BINDING.setParseAction(lambda result: [(r[0],r[1]) for r in result])
-
-    pLET = Keyword("let") + "(" + pMULT_BINDING + ")" + pEXPR
-    pLET.setParseAction(lambda result: pLET_exps_unpack_nat(result))
-
     pEXPRS = ZeroOrMore(pEXPR)
     pEXPRS.setParseAction(lambda result: [result])
+
+    pSINGLE_EXPR = "(" + pEXPR + ")"
+    pSINGLE_EXPR.setParseAction(lambda result: result[1])
 
     pARRAY = "[" + Optional(pEXPR + OneOrMore("," + pEXPR)) + "]"
     pARRAY.setParseAction(lambda result: EArray(result[1:-1][::2]))
@@ -775,20 +769,22 @@ def parse_imp (input):
         bindings = [ (p,ERefCell(EId(p))) for p in params ]
         return ELet(bindings,body)
 
-    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pSTMT #+ ";"
+    pFUN = Keyword("fun") + "(" + pNAMES + ")" + pSTMT
     pFUN.setParseAction(lambda result: EFunction(result[2], mkFunBody(result[2],result[4])))
 
     pFUNrec = Keyword("fun") + pNAME + "(" + pNAMES + ")" + pSTMT
     pFUNrec.setParseAction(lambda result: EFunction(result[3],mkFunBody(result[3], result[5]),name=result[2]))
 
-    pWITH = "(" + Keyword("with") + pNAME + pEXPR + ")"
-    pWITH.setParseAction(lambda result: EWith(EId(result[2]), result[3]))
-
     pNOT = Keyword("not") + pEXPR
     pNOT.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[0])]), [result[1]]))
 
+    pBINDING = pNAME + Keyword("=") + pEXPR
+    pLET = Keyword("let") + "(" + pBINDING + ZeroOrMore("," + pBINDING) + ")" + pEXPR
+    pLET.setParseAction(lambda result:pLET_exps_unpack_nat(result))
+
+    ##FIRST LAYER OF EXPRS
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pIDENTIFIER | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pLET | pFUN | pFUNrec | pNOT | pIDENTIFIER | pARRAY | pDICT | pWITH )
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[0],result[2]))
@@ -796,18 +792,12 @@ def parse_imp (input):
     pALGEBRA = pEXPR_FIRST + pEXPR_REST
     pALGEBRA.setParseAction(lambda result: ECall(EPrimCall(oper_deref,[EId(result[1])]), [result[0], result[2]]))
 
-    pEXPR_SIMPLE = (pCALL | pALGEBRA | pEXPR_FIRST)
-
-    pIF = pEXPR_SIMPLE + Keyword("?") + pEXPR_SIMPLE + Keyword(":") + pEXPR_SIMPLE
+    pIF = pEXPR_FIRST + Keyword("?") + pEXPR + Keyword(":") + pEXPR
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pEXPR_MEDIUM = (pIF | pEXPR_SIMPLE)
+    pEXPR << (pCALL | pALGEBRA | pIF | pEXPR_FIRST)
 
-    pEXPR_PARENS = "(" + pEXPR_MEDIUM + ")"
-    pEXPR_PARENS.setParseAction(lambda result: result[1])
-
-    pEXPR << (pEXPR_PARENS| pEXPR_MEDIUM)
-
+    ########STATEMENTS
     pSTMT_IF_1 = Keyword("if") + "(" + pEXPR  + ")" + pSTMT + "else" + pSTMT + ";"
     pSTMT_IF_1.setParseAction(lambda result: EIf(result[2],result[4],result[6]))
 
@@ -835,6 +825,7 @@ def parse_imp (input):
     pSTMTS = ZeroOrMore(pSTMT)
     pSTMTS.setParseAction(lambda result: [result])
 
+    ######DECLARATIONS
     pDECL_VAR = "var" + pNAME + "=" + pEXPR + ";"
     pDECL_VAR.setParseAction(lambda result: (result[1],result[3]))
 
@@ -848,6 +839,7 @@ def parse_imp (input):
     pDECLS = ZeroOrMore(pDECL)
     pDECLS.setParseAction(lambda result: [result])
 
+    #######STATEMENT BLOCK
     def mkBlock (decls,stmts):
         bindings = [ (n,ERefCell(expr)) for (n,expr) in decls ]
         return ELet(bindings,EDo(stmts))
@@ -855,7 +847,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK )
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK)
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
