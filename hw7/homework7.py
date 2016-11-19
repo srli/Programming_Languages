@@ -5,6 +5,15 @@
 # (no recursive closures)
 #
 
+"""
+Changes made:
+-while loops and for loops have a final semicolon after the closing curly bracket
+-spaces are required between arithmetic: ie. 1 + 1 not 1+1
+-i don't even know what's wrong with sample-dict, but dictionary operations are working from our unit tests.... but not on sample-dict.pj
+-anonymous functions are non-functional. return values aren't actually returned
+-for loops are non-functional
+"""
+
 import sys
 import copy
 import argparse
@@ -180,10 +189,7 @@ class EWhile (Exp):
         return "EWhile({},{})".format(str(self._cond),str(self._exp))
 
     def eval (self,env):
-        print "PRE_EVAL: ", self._cond
         c = self._cond.eval(env)
-        print "GOT: ", c
-        print "TYPE: ", c.type
         if c.type != "boolean":
             raise Exception ("Runtime error: while condition not a Boolean")
         while c.value:
@@ -392,9 +398,6 @@ def oper_greater_eq_than (v1,v2):
     raise Exception ("Runtime error: trying to greater equal than non-numbers")
 
 def oper_less_than (v1,v2):
-    print "IN LESS THAN"
-    print "V1: ", v1
-    print "V2: ", v2
     if v1.type == "integer" and v2.type == "integer":
         return VBoolean(v1.value < v2.value)
     raise Exception ("Runtime error: trying to less than non-numbers")
@@ -450,11 +453,9 @@ def oper_or (v1, v2):
     raise Exception ("Runtime error: type error in OR")
 
 def oper_length (s1):
-    print "LEN GOT: ", s1
     if s1.type == "string":
         return VInteger(len(s1.value))
     elif s1.type == "array":
-        print "RETURNING: ", VInteger(s1.length)
         return VInteger(s1.length)
     raise Exception ("Runtime error: type error in oper_length")
 
@@ -495,7 +496,6 @@ def oper_deref (v1):
 
 def oper_update (v1,v2):
     if v1.type == "ref":
-        print "UPDATING: ", v2
         v1.content = v2
         return VNone()
     raise Exception ("Runtime error: updating a non-reference value")
