@@ -180,7 +180,10 @@ class EWhile (Exp):
         return "EWhile({},{})".format(str(self._cond),str(self._exp))
 
     def eval (self,env):
+        print "PRE_EVAL: ", self._cond
         c = self._cond.eval(env)
+        print "GOT: ", c
+        print "TYPE: ", c.type
         if c.type != "boolean":
             raise Exception ("Runtime error: while condition not a Boolean")
         while c.value:
@@ -364,7 +367,9 @@ class VNone (Value):
 def oper_plus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
         return VInteger(v1.value + v2.value)
-    raise Exception ("Runtime error: trying to add non-numbers")
+    elif v1.type == "string" and v2.type == "string":
+        return VString(v1.value + v2.value)
+    raise Exception ("Runtime error: trying to add non-values")
 
 def oper_minus (v1,v2):
     if v1.type == "integer" and v2.type == "integer":
@@ -387,6 +392,9 @@ def oper_greater_eq_than (v1,v2):
     raise Exception ("Runtime error: trying to greater equal than non-numbers")
 
 def oper_less_than (v1,v2):
+    print "IN LESS THAN"
+    print "V1: ", v1
+    print "V2: ", v2
     if v1.type == "integer" and v2.type == "integer":
         return VBoolean(v1.value < v2.value)
     raise Exception ("Runtime error: trying to less than non-numbers")
@@ -431,18 +439,23 @@ def oper_and (v1, v2):
     raise Exception ("Runtime error: type error in AND")
 
 def oper_or (v1, v2):
+    # print "T1: ", v1.value
+    # print "T2: ", v2.type
+
     if v1.type == "boolean":
         if v1.value == True:
             return VBoolean(True)
         elif v2.type == "boolean":
-            return VBoolean(v1.value and v2.value)
-    print "T1: ", v1.type
-    print "T2: ", v2.type
+            return VBoolean(v2.value)
     raise Exception ("Runtime error: type error in OR")
 
 def oper_length (s1):
+    print "LEN GOT: ", s1
     if s1.type == "string":
         return VInteger(len(s1.value))
+    elif s1.type == "array":
+        print "RETURNING: ", VInteger(s1.length)
+        return VInteger(s1.length)
     raise Exception ("Runtime error: type error in oper_length")
 
 def oper_substring(s1, v1, v2):
@@ -478,12 +491,11 @@ def oper_upper (s1):
 def oper_deref (v1):
     if v1.type == "ref":
         return v1.content
-    print "V1 TYPE: ", v1.type
-    print "V1; ", v1
     raise Exception ("Runtime error: dereferencing a non-reference value")
 
 def oper_update (v1,v2):
     if v1.type == "ref":
+        print "UPDATING: ", v2
         v1.content = v2
         return VNone()
     raise Exception ("Runtime error: updating a non-reference value")
@@ -652,10 +664,6 @@ def initial_env_imp ():
     return env
 
 
-def createFor(result):
-    res = ELet([(result[1][0], ERefCell(result[1][1]))], EDo([EWhile(EPrimCall(oper_not,[result[2]]), EDo([result[6], EPrimCall(oper_update, (EId(result[1][0]), result[4]))]))]))
-    return res
-
 def createProcedure(result):
     procedure_name = result[1]
     params = []
@@ -753,8 +761,11 @@ def parse_imp (input):
     pLET.setParseAction(lambda result: ELet(result[2],result[4]))
 
     ##FIRST LAYER OF EXPRS
-    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pLET | pIDENTIFIER | pSINGLE_EXPR)
+    pEXPR_FIRST = (pINTEGER | pBOOLEAN | pSTRING | pARRAY | pDICT | pFUN | pFUNrec | pNOT | pLET | pINDEX | pIDENTIFIER | pSINGLE_EXPR)
     pEXPR_REST = pOPER + pEXPR
+
+    pLENGTH = Keyword("len")  + "(" + pNAME + ")"
+    pLENGTH.setParseAction(lambda result: EPrimCall(oper_length, [EPrimCall(oper_deref, [EId(result[2])])]))
 
     pCALL = pEXPR_FIRST + "(" + pEXPRS + ")"
     pCALL.setParseAction(lambda result: ECall(result[0],result[2]))
@@ -765,7 +776,7 @@ def parse_imp (input):
     pIF = pEXPR_FIRST + Keyword("?") + pEXPR + Keyword(":") + pEXPR
     pIF.setParseAction(lambda result: EIf(result[0], result[2], result[4]))
 
-    pEXPR << (pCALL | pALGEBRA | pIF | pEXPR_FIRST)
+    pEXPR << (pLENGTH | pCALL | pALGEBRA | pIF | pEXPR_FIRST)
 
     ########STATEMENTS
     pSTMT_EXPR = pEXPR + ";"
@@ -780,7 +791,24 @@ def parse_imp (input):
     pSTMT_WHILE = Keyword("while") + "(" + pEXPR + ")" + pSTMT + ";"
     pSTMT_WHILE.setParseAction(lambda result: EWhile(result[2],result[4]))
 
-    pSTMT_FOR = "for" + "(" + pNAME + "in" + pEXPR + ")" + pSTMT
+    def createFor(result):
+        # print "GOT: ", result
+        LOOP_VAR = result[2]
+        ARR_VAR = result[4]
+
+        res = ELet([("arr_length", ERefCell(EValue(VInteger(0)))),
+        (LOOP_VAR, EValue(EPrimCall(oper_getelement, [EId(ARR_VAR), EValue(VInteger(0))]))),
+        ("counter", ERefCell(EValue(VInteger(0))))],
+        EDo([EPrimCall(oper_update, [EId("arr_length"), EValue(EPrimCall(oper_length, [EId(ARR_VAR)]))])]))
+
+
+        # loop_init = EPrimCall(oper_update, [EId(LOOP_VAR), ])
+        # res = ELet([(result[2], ERefCell(EPrimCall(oper_getelement, [EId(result[4]), EValue(VInteger(0))]))), ("arr_length", ERefCell(EPrimCall(oper_length,[EId(result[4])]))),
+        # ("counter", ERefCell(EValue(VInteger(0))))], EValue(VInteger(1)),
+        # EDo([EPrimCall(oper_update, [EId("counter"), EValue(VInteger(20))])]))
+        return res
+
+    pSTMT_FOR = Keyword("for") + "(" + pNAME  + Keyword("in") + pEXPR + ")" + pSTMT + ";"
     pSTMT_FOR.setParseAction(lambda result: createFor(result))
 
     pSTMT_PRINT = "print" + pEXPR + ZeroOrMore("," + pEXPR) + ";"
@@ -823,7 +851,7 @@ def parse_imp (input):
     pSTMT_BLOCK = "{" + pDECLS + pSTMTS + "}"
     pSTMT_BLOCK.setParseAction(lambda result: mkBlock(result[1],result[2]))
 
-    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT| pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK | pSTMT_EXPR)
+    pSTMT << ( pSTMT_IF_1 | pSTMT_IF_2 | pSTMT_WHILE | pSTMT_FOR | pSTMT_PRINT | pSTMT_ARR_UPDATE | pSTMT_UPDATE | pSTMT_PROCEDURE | pSTMT_BLOCK | pSTMT_EXPR)
 
     # can't attach a parse action to pSTMT because of recursion, so let's duplicate the parser
     pTOP_STMT = pSTMT.copy()
