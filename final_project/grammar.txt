@@ -1,0 +1,12 @@
+Datalog Grammar
+
+prims ::= integer literals
+          string literals
+          boolean literals
+          variable = prims
+
+lit ::= lit .
+        lit ?
+        lit :- [lit, ...]
+
+#lists, primitive operators (>, <, = , >=, <=), and/or, if-then
