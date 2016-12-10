@@ -47,9 +47,11 @@ def match_rules(query, facts, rules):
             queries = clause[1]
 
             for query in queries:
-                var_order_key = []
+
+                #####MATCHING FACTS
                 matched_terms = match_facts(query, facts)
                 query_var_order = query[1]
+                var_order_key = []
 
                 for var in var_order:
                     if var[0].isupper():
@@ -57,6 +59,8 @@ def match_rules(query, facts, rules):
                         var_order_key.append(ind)
                     else:
                         var_order_key.append(var)
+
+                print "VOK: ", var_order_key
 
                 for mt in matched_terms:
                     temp_term = []
@@ -69,11 +73,25 @@ def match_rules(query, facts, rules):
                     if len(temp_term) == len(query_terms):
                         final_matched_terms.append(temp_term)
 
-    print "MATCHED: ", final_matched_terms
+                #####MATCHING RULES
+                match_rules_res = match_rules(query, facts, rules)
+                for res in match_rules_res:
+                    temp_term = []
+                    for v in var_order_key:
+                        if type(v) == int:
+                            temp_term.append(res[v])
+                        else:
+                            temp_term.append(v)
+
+                    if len(temp_term) == len(query_terms):
+                        final_matched_terms.append(temp_term)
+
+    return final_matched_terms
 
 def execute_query(query, facts, rules):
-    match_facts(query, facts)
-    match_rules(query, facts, rules)
+    results = match_facts(query, facts) + match_rules(query, facts, rules)
+    for r in results:
+        print query[0] + "(" + ', '.join(r) + ")"
 
 def interpret_parse(result):
     if result[-1] == ".":
@@ -158,7 +176,7 @@ def parse_imp (input):
 class Shell():
     def __init__(self):
         self.facts = {'mom': [['john', 'steve'], ['bob', 'sven']]}
-        self.rules = {'dad': [(['A', 'B'], [('mom', ['A', 'B'])])]}
+        self.rules =  {'dad': [(['A', 'B'], [('mom', ['A', 'B'])])], 'ancs': [(['A', 'B'], [('dad', ['A', 'B'])])]}
 
     def shell_imp (self):
         # A simple shell
