@@ -1,18 +1,7 @@
 ############################################################
-# Simple imperative language
-# C-like surface syntac
-# with S-expression syntax for expressions
-# (no recursive closures)
+# Logic interpreter
 #
 
-"""
-Changes made:
--while loops and for loops have a final semicolon after the closing curly bracket
--spaces are required between arithmetic: ie. 1 + 1 not 1+1
--i don't even know what's wrong with sample-dict, but dictionary operations are working from our unit tests.... but not on sample-dict.pj
--anonymous functions are non-functional. return values aren't actually returned
--for loops are non-functional
-"""
 
 import sys
 import copy
@@ -20,7 +9,7 @@ import argparse
 
 from pyparsing import Word, ZeroOrMore, OneOrMore, Forward
 
-def execute_query(query, facts, rules):
+def match_facts(query, facts):
     query_pred = query[0]
     query_terms = query[1]
 
@@ -40,8 +29,51 @@ def execute_query(query, facts, rules):
 
             if len(temp_term) == len(query_terms):
                 matched_terms.append(temp_term)
-    print "MATCHED: ", matched_terms
-    # matching_rule_terms = rules[query_pred]
+
+    return matched_terms
+
+def match_rules(query, facts, rules):
+    query_pred = query[0]
+    query_terms = query[1]
+
+    matching_rule_clause = rules.get(query_pred, None)
+
+    final_matched_terms = []
+    temp_term = []
+
+    if matching_rule_clause:
+        for clause in matching_rule_clause:
+            var_order = clause[0]
+            queries = clause[1]
+
+            for query in queries:
+                var_order_key = []
+                matched_terms = match_facts(query, facts)
+                query_var_order = query[1]
+
+                for var in var_order:
+                    if var[0].isupper():
+                        ind = query_var_order.index(var[0])
+                        var_order_key.append(ind)
+                    else:
+                        var_order_key.append(var)
+
+                for mt in matched_terms:
+                    temp_term = []
+                    for v in var_order_key:
+                        if type(v) == int:
+                            temp_term.append(mt[v])
+                        else:
+                            temp_term.append(v)
+
+                    if len(temp_term) == len(query_terms):
+                        final_matched_terms.append(temp_term)
+
+    print "MATCHED: ", final_matched_terms
+
+def execute_query(query, facts, rules):
+    match_facts(query, facts)
+    match_rules(query, facts, rules)
 
 def interpret_parse(result):
     if result[-1] == ".":
@@ -79,7 +111,6 @@ def interpret_parse(result):
         definitions = []
         i += 3
         while result[i] != "]":
-            print "I'M AT: ", result[i]
             pred = result[i]
             terms = []
             i += 2
@@ -126,8 +157,8 @@ def parse_imp (input):
 
 class Shell():
     def __init__(self):
-        self.facts = {}
-        self.rules = {}
+        self.facts = {'mom': [['john', 'steve'], ['bob', 'sven']]}
+        self.rules = {'dad': [(['A', 'B'], [('mom', ['A', 'B'])])]}
 
     def shell_imp (self):
         # A simple shell
@@ -138,25 +169,24 @@ class Shell():
         while True:
             inp = raw_input("imp> ")
             try:
+                if inp == "#env":
+                    print "FACTS: ", self.facts
+                    print "RULES: ", self.rules
+                    continue
+
                 result = parse_imp(inp)
-                print result
                 if result[0] == "fact":
                     new_facts = self.facts.get(result[1][0], [])
                     new_facts.append(result[1][1])
                     self.facts[result[1][0]] = new_facts
 
                 elif result[0] == "query":
-                    print "EXECUTE QUERY: ", result[1]
                     execute_query(result[1], self.facts, self.rules)
 
                 elif result[0] == "rule":
-                    print "GOT: ", result
-                    new_rules = self.rules.get(result[1][0][0])
+                    new_rules = self.rules.get(result[1][0][0], [])
                     new_rules.append((result[1][0][1], result[1][1]))
                     self.rules[result[1][0][0]] = new_rules
-
-                print "FACTS: ", self.facts
-                print "RULES: ", self.rules
 
             except Exception as e:
                 print "Exception: {}".format(e)
