@@ -30,12 +30,13 @@ def execute_query(query, facts, rules):
     if matching_fact_terms:
         for term_set in matching_fact_terms:
             temp_term = []
-            for qt in enumerate(i, query_terms):
+            i = 0
+            for i, qt in enumerate(query_terms):
                 if qt[0].isupper():
                     temp_term.append(term_set[i])
                 else:
                     if term_set[i] == qt:
-                        temp_term.append(temp_set[i])
+                        temp_term.append(term_set[i])
 
             if len(temp_term) == len(query_terms):
                 matched_terms.append(temp_term)
@@ -96,8 +97,8 @@ def interpret_parse(result):
         return ("rule", (defined_predicate, definitions))
 
 def parse_imp (input):
-    stringChars = "abcdefghijklmnopqrtuvwxyz0123456789_"
-    varChars = "ABCDEFGHIJKLMNOPQRTUVWXYZ"
+    stringChars = "abcdefghijklmnopqrstuvwxyz0123456789_"
+    varChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     ######VALUES
     pVARIABLE = Word(varChars, stringChars + varChars)
@@ -140,13 +141,19 @@ class Shell():
                 result = parse_imp(inp)
                 print result
                 if result[0] == "fact":
-                    self.facts[result[1][0]] = result[1][1]
+                    new_facts = self.facts.get(result[1][0], [])
+                    new_facts.append(result[1][1])
+                    self.facts[result[1][0]] = new_facts
+
                 elif result[0] == "query":
                     print "EXECUTE QUERY: ", result[1]
                     execute_query(result[1], self.facts, self.rules)
+
                 elif result[0] == "rule":
                     print "GOT: ", result
-                    self.rules[result[1][0][0]] = (result[1][0][1], result[1][1])
+                    new_rules = self.rules.get(result[1][0][0])
+                    new_rules.append((result[1][0][1], result[1][1]))
+                    self.rules[result[1][0][0]] = new_rules
 
                 print "FACTS: ", self.facts
                 print "RULES: ", self.rules
