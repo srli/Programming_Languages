@@ -20,7 +20,29 @@ import argparse
 
 from pyparsing import Word, ZeroOrMore, OneOrMore, Forward
 
-def print_res(result):
+def execute_query(query, facts, rules):
+    query_pred = query[0]
+    query_terms = query[1]
+
+    matching_fact_terms = facts.get(query_pred, None)
+    matched_terms = []
+
+    if matching_fact_terms:
+        for term_set in matching_fact_terms:
+            temp_term = []
+            for qt in enumerate(i, query_terms):
+                if qt[0].isupper():
+                    temp_term.append(term_set[i])
+                else:
+                    if term_set[i] == qt:
+                        temp_term.append(temp_set[i])
+
+            if len(temp_term) == len(query_terms):
+                matched_terms.append(temp_term)
+    print "MATCHED: ", matched_terms
+    # matching_rule_terms = rules[query_pred]
+
+def interpret_parse(result):
     if result[-1] == ".":
         predicate = result[0]
         terms = []
@@ -33,11 +55,17 @@ def print_res(result):
         return ("fact", (predicate, terms))
 
     elif result[-1] == "?":
-        return ("query", result)
+        predicate = result[0]
+        terms = []
+        i = 2
+        while result[i] != ")":
+            if result[i] != ",":
+                terms.append(result[i])
+            i += 1
+
+        return ("query", (predicate, terms))
 
     elif result[-1] == "]":
-        print "GOT: ", result
-
         def_pred = result[0]
         def_terms = []
         i = 2
@@ -81,13 +109,13 @@ def parse_imp (input):
     pQUERY_LITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + "," + (pVARIABLE|pSTRING) + ")"
 
     pLIT_STATEMENT = pLITERAL + "."
-    pLIT_STATEMENT.setParseAction(lambda result: print_res(result))
+    pLIT_STATEMENT.setParseAction(lambda result: interpret_parse(result))
 
     pLIT_QUERY = pQUERY_LITERAL + "?"
-    pLIT_QUERY.setParseAction(lambda result: print_res(result))
+    pLIT_QUERY.setParseAction(lambda result: interpret_parse(result))
 
     pLIT_DEFINE = pQUERY_LITERAL + ":-" + "[" + pQUERY_LITERAL + ZeroOrMore("," + pQUERY_LITERAL) + "]"
-    pLIT_DEFINE.setParseAction(lambda result: print_res(result))
+    pLIT_DEFINE.setParseAction(lambda result: interpret_parse(result))
 
     pLIT << (pLIT_DEFINE | pLIT_STATEMENT | pLIT_QUERY )
 
@@ -113,6 +141,9 @@ class Shell():
                 print result
                 if result[0] == "fact":
                     self.facts[result[1][0]] = result[1][1]
+                elif result[0] == "query":
+                    print "EXECUTE QUERY: ", result[1]
+                    execute_query(result[1], self.facts, self.rules)
                 elif result[0] == "rule":
                     print "GOT: ", result
                     self.rules[result[1][0][0]] = (result[1][0][1], result[1][1])
