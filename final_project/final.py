@@ -20,11 +20,52 @@ import argparse
 
 from pyparsing import Word, ZeroOrMore, OneOrMore, Forward
 
-def initial_env_imp():
-    print "hello"
-
 def print_res(result):
-    print result
+    if result[-1] == ".":
+        predicate = result[0]
+        terms = []
+        i = 2
+        while result[i] != ")":
+            if result[i] != ",":
+                terms.append(result[i])
+            i += 1
+
+        return ("fact", (predicate, terms))
+
+    elif result[-1] == "?":
+        return ("query", result)
+
+    elif result[-1] == "]":
+        print "GOT: ", result
+
+        def_pred = result[0]
+        def_terms = []
+        i = 2
+        while result[i] != ")":
+            if result[i] != ",":
+                def_terms.append(result[i])
+            i += 1
+        defined_predicate = (def_pred, def_terms)
+
+        definitions = []
+        i += 3
+        while result[i] != "]":
+            print "I'M AT: ", result[i]
+            pred = result[i]
+            terms = []
+            i += 2
+            while result[i] != ")":
+                if result[i] != ",":
+                    terms.append(result[i])
+                i += 1
+
+            definitions.append((pred, terms))
+            if result[i + 1] != "]":
+                i += 2
+            else:
+                i += 1
+
+        return ("rule", (defined_predicate, definitions))
 
 def parse_imp (input):
     stringChars = "abcdefghijklmnopqrtuvwxyz0123456789_"
@@ -32,23 +73,20 @@ def parse_imp (input):
 
     ######VALUES
     pVARIABLE = Word(varChars, stringChars + varChars)
-    pVARIABLE.setParseAction(lambda result: print_res(result))
-
     pSTRING = Word(stringChars)
-    pSTRING.setParseAction(lambda result: print_res(result))
 
     pLIT = Forward()
 
-    pLITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + "," + (pVARIABLE|pSTRING) + ")"
-    pLITERAL.setParseAction(lambda result: print_res(result))
+    pLITERAL = pSTRING + "(" + pSTRING + "," + pSTRING + ")"
+    pQUERY_LITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + "," + (pVARIABLE|pSTRING) + ")"
 
     pLIT_STATEMENT = pLITERAL + "."
     pLIT_STATEMENT.setParseAction(lambda result: print_res(result))
 
-    pLIT_QUERY = pLITERAL + "?"
+    pLIT_QUERY = pQUERY_LITERAL + "?"
     pLIT_QUERY.setParseAction(lambda result: print_res(result))
 
-    pLIT_DEFINE = pLITERAL + ":-" + "[" + pLITERAL + ZeroOrMore("," + pLITERAL) + "]"
+    pLIT_DEFINE = pQUERY_LITERAL + ":-" + "[" + pQUERY_LITERAL + ZeroOrMore("," + pQUERY_LITERAL) + "]"
     pLIT_DEFINE.setParseAction(lambda result: print_res(result))
 
     pLIT << (pLIT_DEFINE | pLIT_STATEMENT | pLIT_QUERY )
@@ -59,7 +97,8 @@ def parse_imp (input):
 
 class Shell():
     def __init__(self):
-        self.env = initial_env_imp()
+        self.facts = {}
+        self.rules = {}
 
     def shell_imp (self):
         # A simple shell
@@ -72,23 +111,14 @@ class Shell():
             try:
                 result = parse_imp(inp)
                 print result
-                # if result["result"] == "statement":
-                #     stmt = result["stmt"]
-                #     print "Abstract representation:", stmt
-                #     v = stmt.eval(self.env)
-                #
-                # elif result["result"] == "abstract":
-                #     print_res(result)["stmt"]
-                #
-                # elif result["result"] == "quit":
-                #     return
-                #
-                # elif result["result"] == "declaration":
-                #     (name,expr) = result["decl"]
-                #     v = expr.eval(self.env)
-                #     self.env.insert(0,(name,VRefCell(v)))
-                #     print "{} defined".format(name)
+                if result[0] == "fact":
+                    self.facts[result[1][0]] = result[1][1]
+                elif result[0] == "rule":
+                    print "GOT: ", result
+                    self.rules[result[1][0][0]] = (result[1][0][1], result[1][1])
 
+                print "FACTS: ", self.facts
+                print "RULES: ", self.rules
 
             except Exception as e:
                 print "Exception: {}".format(e)
