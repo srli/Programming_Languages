@@ -7,7 +7,7 @@ import sys
 import copy
 import argparse
 
-from pyparsing import Word, ZeroOrMore, OneOrMore, Forward
+from pyparsing import Word, ZeroOrMore, OneOrMore, Forward, Optional, Keyword
 
 def match_facts(query, facts):
     query_pred = query[0]
@@ -42,7 +42,11 @@ def match_rules(query, facts, rules):
     temp_term = []
 
     if matching_rule_clause:
+
+        all_matched_terms_per_clause = []
         for clause in matching_rule_clause:
+            matched_terms_clause = []
+
             var_order = clause[0]
             queries = clause[1]
 
@@ -85,6 +89,9 @@ def match_rules(query, facts, rules):
 
                     if len(temp_term) == len(query_terms):
                         final_matched_terms.append(temp_term)
+                        matched_terms_clause.append(temp_term)
+
+            all_matched_terms_per_clause.append(matched_terms_clause)
 
     return final_matched_terms
 
@@ -143,7 +150,23 @@ def interpret_parse(result):
             else:
                 i += 1
 
-        return ("rule", (defined_predicate, definitions))
+
+            return ("rule", (defined_predicate, definitions))
+
+    else:
+        print "GOT: ", result
+        return ("rule", ("hi", "bye"))
+
+def parse_ptail(result):
+    print "PARSE: ", result
+    if len(result) > 3:
+        return (result[1], result[2], result[3])
+    else:
+        return (result[1])
+
+def parse_lit(result):
+    print "LIT: ", result
+    return (result[0], result[2], result[4])
 
 def parse_imp (input):
     stringChars = "abcdefghijklmnopqrstuvwxyz0123456789_"
@@ -154,9 +177,13 @@ def parse_imp (input):
     pSTRING = Word(stringChars)
 
     pLIT = Forward()
+    pTERM = Forward()
 
     pLITERAL = pSTRING + "(" + pSTRING + "," + pSTRING + ")"
+    pLITERAL.setParseAction(lambda result: parse_lit(result))
+
     pQUERY_LITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + "," + (pVARIABLE|pSTRING) + ")"
+    pQUERY_LITERAL.setParseAction(lambda result: parse_lit(result))
 
     pLIT_STATEMENT = pLITERAL + "."
     pLIT_STATEMENT.setParseAction(lambda result: interpret_parse(result))
@@ -164,9 +191,13 @@ def parse_imp (input):
     pLIT_QUERY = pQUERY_LITERAL + "?"
     pLIT_QUERY.setParseAction(lambda result: interpret_parse(result))
 
-    pLIT_DEFINE = pQUERY_LITERAL + ":-" + "[" + pQUERY_LITERAL + ZeroOrMore("," + pQUERY_LITERAL) + "]"
+    pTAIL = "(" + pQUERY_LITERAL + Optional((Word("|")|Word("&")) + pTERM) + ")"
+    pTAIL.setParseAction(lambda result: parse_ptail(result))
+
+    pLIT_DEFINE = pQUERY_LITERAL + ":-" + pTAIL
     pLIT_DEFINE.setParseAction(lambda result: interpret_parse(result))
 
+    pTERM << (pTAIL | pQUERY_LITERAL)
     pLIT << (pLIT_DEFINE | pLIT_STATEMENT | pLIT_QUERY )
 
     result = pLIT.parseString(input)[0]
