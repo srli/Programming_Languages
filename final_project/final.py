@@ -10,6 +10,7 @@ import argparse
 from pyparsing import Word, ZeroOrMore, OneOrMore, Forward, Optional, Keyword
 
 def match_facts(query, facts):
+    print "QUERY: ", query
     query_pred = query[0]
     query_terms = query[1]
 
@@ -101,71 +102,23 @@ def execute_query(query, facts, rules):
         print query[0] + "(" + ', '.join(r) + ")"
 
 def interpret_parse(result):
-    if result[-1] == ".":
-        predicate = result[0]
-        terms = []
-        i = 2
-        while result[i] != ")":
-            if result[i] != ",":
-                terms.append(result[i])
-            i += 1
+    if result[1] == ".":
+        return ("fact", (result[0][0], list(result[0][1:])))
 
-        return ("fact", (predicate, terms))
+    elif result[1] == "?":
+        return ("query", (result[0][0], list(result[0][1:])))
 
-    elif result[-1] == "?":
-        predicate = result[0]
-        terms = []
-        i = 2
-        while result[i] != ")":
-            if result[i] != ",":
-                terms.append(result[i])
-            i += 1
-
-        return ("query", (predicate, terms))
-
-    elif result[-1] == "]":
-        def_pred = result[0]
-        def_terms = []
-        i = 2
-        while result[i] != ")":
-            if result[i] != ",":
-                def_terms.append(result[i])
-            i += 1
-        defined_predicate = (def_pred, def_terms)
-
-        definitions = []
-        i += 3
-        while result[i] != "]":
-            pred = result[i]
-            terms = []
-            i += 2
-            while result[i] != ")":
-                if result[i] != ",":
-                    terms.append(result[i])
-                i += 1
-
-            definitions.append((pred, terms))
-            if result[i + 1] != "]":
-                i += 2
-            else:
-                i += 1
-
-
-            return ("rule", (defined_predicate, definitions))
-
-    else:
-        print "GOT: ", result
-        return ("rule", ("hi", "bye"))
+    elif result[1] == ":-":
+        defined_predicate = result[0]
+        return ("rule", ((result[0][0], list(result[0][1:])), result[2]))
 
 def parse_ptail(result):
-    print "PARSE: ", result
     if len(result) > 3:
         return (result[1], result[2], result[3])
     else:
         return (result[1])
 
 def parse_lit(result):
-    print "LIT: ", result
     return (result[0], result[2], result[4])
 
 def parse_imp (input):
@@ -191,7 +144,7 @@ def parse_imp (input):
     pLIT_QUERY = pQUERY_LITERAL + "?"
     pLIT_QUERY.setParseAction(lambda result: interpret_parse(result))
 
-    pTAIL = "(" + pQUERY_LITERAL + Optional((Word("|")|Word("&")) + pTERM) + ")"
+    pTAIL = "(" + pTERM + Optional((Word("|")|Word("&")) + pTERM) + ")"
     pTAIL.setParseAction(lambda result: parse_ptail(result))
 
     pLIT_DEFINE = pQUERY_LITERAL + ":-" + pTAIL
@@ -222,6 +175,11 @@ class Shell():
                     print "FACTS: ", self.facts
                     print "RULES: ", self.rules
                     continue
+                elif inp == "#clear":
+                    print "CLEARING ENVIRONMENT"
+                    self.facts.clear()
+                    self.rules.clear()
+                    continue
 
                 result = parse_imp(inp)
                 if result[0] == "fact":
@@ -233,6 +191,7 @@ class Shell():
                     execute_query(result[1], self.facts, self.rules)
 
                 elif result[0] == "rule":
+                    print "RULE: ", result
                     new_rules = self.rules.get(result[1][0][0], [])
                     new_rules.append((result[1][0][1], result[1][1]))
                     self.rules[result[1][0][0]] = new_rules
