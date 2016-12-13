@@ -2,7 +2,6 @@
 # Logic interpreter
 #
 
-
 import sys
 import copy
 import argparse
@@ -38,7 +37,7 @@ def merge_two_dicts(x, y):
     z.update(y)
     return z
 
-def match_clause(q, var_order, facts, res_dict = {}):
+def match_clause(q, var_order, facts):
     if q[1] == "|":
         final_results = []
         messy_result = (match_clause(q[0], var_order, facts)) + (match_clause(q[2], var_order, facts))
@@ -66,6 +65,7 @@ def match_clause(q, var_order, facts, res_dict = {}):
                 final_results.append(temp_term)
 
         return final_results
+
     else:
         #####MATCHING FACTS
         matched_terms = match_facts((q[0], list(q[1:])), facts)
@@ -109,8 +109,24 @@ def match_rules(query, facts, rules):
 
 def execute_query(query, facts, rules):
     results = match_facts(query, facts) + match_rules(query, facts, rules)
+    query_vars = query[1]
+    rough_results = []
+
+    for res in results:
+        temp_term = []
+        for i, term in enumerate(query_vars):
+            if term[0].isupper():
+                temp_term.append(res[i])
+            else:
+                if res[i] == term:
+                    temp_term.append(res[i])
+                else:
+                    continue
+        if len(temp_term) == len(query[1]):
+            rough_results.append(temp_term)
+
     cleaned_res = []
-    for r in results:
+    for r in rough_results:
         if r not in cleaned_res:
             cleaned_res.append(r)
             print query[0] + "(" + ', '.join(r) + ")"
@@ -133,7 +149,7 @@ def parse_ptail(result):
         return (result[1])
 
 def parse_lit(result):
-    return (result[0], result[2], result[4])
+    return tuple([result[0]] + result[2:-1][::2])
 
 def parse_imp (input):
     stringChars = "abcdefghijklmnopqrstuvwxyz0123456789_"
@@ -146,10 +162,10 @@ def parse_imp (input):
     pLIT = Forward()
     pTERM = Forward()
 
-    pLITERAL = pSTRING + "(" + pSTRING + "," + pSTRING + ")"
+    pLITERAL = pSTRING + "(" + pSTRING + ZeroOrMore("," + pSTRING) + ")"
     pLITERAL.setParseAction(lambda result: parse_lit(result))
 
-    pQUERY_LITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + "," + (pVARIABLE|pSTRING) + ")"
+    pQUERY_LITERAL = pSTRING + "(" + (pVARIABLE|pSTRING) + ZeroOrMore("," + (pVARIABLE|pSTRING)) + ")"
     pQUERY_LITERAL.setParseAction(lambda result: parse_lit(result))
 
     pLIT_STATEMENT = pLITERAL + "."
@@ -176,15 +192,15 @@ def parse_imp (input):
 
 class Shell():
     def __init__(self):
-        self.facts = {'brother': [['ron', 'sally']], 'mom': [['sally', 'ben']]}
-        self.rules = {'uncle': [(['C', 'B'], (('mom', 'A', 'B'), '&', ('brother', 'C', 'A')))]}
+        self.facts = {'married': [['alice', 'bob'], ['ivan', 'carl'], ['elise', 'fred']], 'parent': [['alice', 'carl'], ['alice', 'diane'], ['alice', 'elise'], ['ivan', 'jimmy'], ['ivan', 'kendra'], ['elise', 'greg'], ['elise', 'helen']]}
+        self.rules = {}
 
     def shell_imp (self):
         # A simple shell
         # Repeatedly read a line of input, parse it, and evaluate the result
 
         print "Final Project - Logic Language Interpreter"
-
+        print "Hello world! :D"
         while True:
             inp = raw_input("imp> ")
             try:
