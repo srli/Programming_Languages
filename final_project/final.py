@@ -10,7 +10,6 @@ import argparse
 from pyparsing import Word, ZeroOrMore, OneOrMore, Forward, Optional, Keyword
 
 def match_facts(query, facts):
-    print "QUERY: ", query
     query_pred = query[0]
     query_terms = query[1]
 
@@ -33,66 +32,69 @@ def match_facts(query, facts):
 
     return matched_terms
 
+def merge_two_dicts(x, y):
+    '''Given two dicts, merge them into a new dict as a shallow copy.'''
+    z = x.copy()
+    z.update(y)
+    return z
+
+def match_clause(q, var_order, facts, res_dict = {}):
+    if q[1] == "|":
+        final_results = []
+        messy_result = (match_clause(q[0], var_order, facts)) + (match_clause(q[2], var_order, facts))
+        for item in messy_result:
+            temp_term = []
+            for v in var_order:
+                temp_term.append(item[v])
+            final_results.append(temp_term)
+        return final_results
+
+    elif q[1] == "&":
+        final_results = []
+        ret1 = match_clause(q[0], var_order, facts)
+
+        for r in ret1:
+            q2_cpy = list(q[2])
+            q2_cpy = [r[x] if x in r else x for x in q2_cpy]
+
+            ret2 = match_clause(q2_cpy, var_order, facts)
+            for r2 in ret2:
+                res = merge_two_dicts(r, r2)
+                temp_term = []
+                for v in var_order:
+                    temp_term.append(res.get(v, None))
+                final_results.append(temp_term)
+
+        return final_results
+    else:
+        #####MATCHING FACTS
+        matched_terms = match_facts((q[0], list(q[1:])), facts)
+        query_var_order = list(q[1:]) #the var order of the query i.e mom(A,B) is [A,B]
+
+        final_matched_terms = []
+        for mt in matched_terms:
+            temp_term = {}
+            for i, v in enumerate(query_var_order):
+                temp_term[v] = mt[i]
+
+            final_matched_terms.append(temp_term)
+
+        return final_matched_terms
+
 def match_rules(query, facts, rules):
     query_pred = query[0]
     query_terms = query[1]
 
-    matching_rule_clause = rules.get(query_pred, None)
-
+    matching_rule_clauses = rules.get(query_pred, None)
     final_matched_terms = []
-    temp_term = []
 
-    if matching_rule_clause:
-
-        all_matched_terms_per_clause = []
-        for clause in matching_rule_clause:
-            matched_terms_clause = []
+    if matching_rule_clauses:
+        for clause in matching_rule_clauses:
 
             var_order = clause[0]
             queries = clause[1]
 
-            for query in queries:
-
-                #####MATCHING FACTS
-                matched_terms = match_facts(query, facts)
-                query_var_order = query[1]
-                var_order_key = []
-
-                for var in var_order:
-                    if var[0].isupper():
-                        ind = query_var_order.index(var[0])
-                        var_order_key.append(ind)
-                    else:
-                        var_order_key.append(var)
-
-                print "VOK: ", var_order_key
-
-                for mt in matched_terms:
-                    temp_term = []
-                    for v in var_order_key:
-                        if type(v) == int:
-                            temp_term.append(mt[v])
-                        else:
-                            temp_term.append(v)
-
-                    if len(temp_term) == len(query_terms):
-                        final_matched_terms.append(temp_term)
-
-                #####MATCHING RULES
-                match_rules_res = match_rules(query, facts, rules)
-                for res in match_rules_res:
-                    temp_term = []
-                    for v in var_order_key:
-                        if type(v) == int:
-                            temp_term.append(res[v])
-                        else:
-                            temp_term.append(v)
-
-                    if len(temp_term) == len(query_terms):
-                        final_matched_terms.append(temp_term)
-                        matched_terms_clause.append(temp_term)
-
-            all_matched_terms_per_clause.append(matched_terms_clause)
+            final_matched_terms += match_clause(queries, var_order, facts)
 
     return final_matched_terms
 
@@ -144,6 +146,9 @@ def parse_imp (input):
     pLIT_QUERY = pQUERY_LITERAL + "?"
     pLIT_QUERY.setParseAction(lambda result: interpret_parse(result))
 
+    pLIT_DELETE = "#delete" + pSTRING
+    pLIT_DELETE.setParseAction(lambda result: [result])
+
     pTAIL = "(" + pTERM + Optional((Word("|")|Word("&")) + pTERM) + ")"
     pTAIL.setParseAction(lambda result: parse_ptail(result))
 
@@ -151,7 +156,7 @@ def parse_imp (input):
     pLIT_DEFINE.setParseAction(lambda result: interpret_parse(result))
 
     pTERM << (pTAIL | pQUERY_LITERAL)
-    pLIT << (pLIT_DEFINE | pLIT_STATEMENT | pLIT_QUERY )
+    pLIT << (pLIT_DEFINE | pLIT_STATEMENT | pLIT_QUERY | pLIT_DELETE)
 
     result = pLIT.parseString(input)[0]
     return result    # the first element of the result is the expression
@@ -159,8 +164,8 @@ def parse_imp (input):
 
 class Shell():
     def __init__(self):
-        self.facts = {'mom': [['john', 'steve'], ['bob', 'sven']]}
-        self.rules =  {'dad': [(['A', 'B'], [('mom', ['A', 'B'])])], 'ancs': [(['A', 'B'], [('dad', ['A', 'B'])])]}
+        self.facts = {'brother': [['ron', 'sally']], 'mom': [['sally', 'ben']]}
+        self.rules = {'uncle': [(['C', 'B'], (('mom', 'A', 'B'), '&', ('brother', 'C', 'A')))]}
 
     def shell_imp (self):
         # A simple shell
@@ -182,6 +187,7 @@ class Shell():
                     continue
 
                 result = parse_imp(inp)
+
                 if result[0] == "fact":
                     new_facts = self.facts.get(result[1][0], [])
                     new_facts.append(result[1][1])
@@ -191,10 +197,12 @@ class Shell():
                     execute_query(result[1], self.facts, self.rules)
 
                 elif result[0] == "rule":
-                    print "RULE: ", result
                     new_rules = self.rules.get(result[1][0][0], [])
                     new_rules.append((result[1][0][1], result[1][1]))
                     self.rules[result[1][0][0]] = new_rules
+
+                elif result[0] == "#delete":
+                    del self.rules[result[1]]
 
             except Exception as e:
                 print "Exception: {}".format(e)
