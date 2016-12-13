@@ -94,14 +94,26 @@ def match_rules(query, facts, rules):
             var_order = clause[0]
             queries = clause[1]
 
-            final_matched_terms += match_clause(queries, var_order, facts)
+            res = match_clause(queries, var_order, facts)
+
+            for l in res:
+                if type(l) == dict:
+                    temp_term = []
+                    for v in var_order:
+                        temp_term.append(l[v])
+                    final_matched_terms.append(temp_term)
+                else:
+                    final_matched_terms.append(l)
 
     return final_matched_terms
 
 def execute_query(query, facts, rules):
     results = match_facts(query, facts) + match_rules(query, facts, rules)
+    cleaned_res = []
     for r in results:
-        print query[0] + "(" + ', '.join(r) + ")"
+        if r not in cleaned_res:
+            cleaned_res.append(r)
+            print query[0] + "(" + ', '.join(r) + ")"
 
 def interpret_parse(result):
     if result[1] == ".":
