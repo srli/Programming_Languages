@@ -1,12 +1,15 @@
 Datalog Grammar
 
-prims ::= integer literals
-          string literals
-          boolean literals
-          variable = prims
+prims ::= str
+          var
+
+lit := str(str,..., str)
+q_lit := str(var|str,..., var|str)
+
+term := q_lit
+        (term | term)
+        (term & term)
 
 lit ::= lit .
-        lit ?
-        lit :- [lit, ...]
-
-#lists, primitive operators (>, <, = , >=, <=), and/or, if-then
+        q_lit ?
+        q_lit :- (term)

@@ -1,0 +1,106 @@
+------------
+Our family tree as per our final presentation:
+https://docs.google.com/presentation/d/1JQaTo85YNxuVM6UDhA3oSvaMpHPMq22FRsFplHgVPJ8/edit?usp=sharing
+
+lines between >>> represent answers
+
+Already loaded into the environment:
+
+married(alice, bob) .
+parent(alice, carl) .
+parent(alice, diane) .
+parent(alice, elise) .
+
+married(ivan, carl).
+parent(ivan, jimmy) .
+parent(ivan, kendra) .
+
+married(elise, fred) .
+parent(elise, greg) .
+parent(elise, helen) .
+
+---
+Queries:
+
+married(A, B) ?
+>>>
+married(alice, bob)
+married(ivan, carl)
+married(elise, fred)
+>>>
+
+parent(A, B) ?
+>>>
+parent(alice, carl)
+parent(alice, diane)
+parent(alice, elise)
+parent(ivan, jimmy)
+parent(ivan, kendra)
+parent(elise, greg)
+parent(elise, helen)
+>>>
+
+parent(B, C) :- (married(A, B) & parent(A, C))
+parent(A, B) ?
+>>>
+parent(alice, carl)
+parent(alice, diane)
+parent(alice, elise)
+parent(ivan, jimmy)
+parent(ivan, kendra)
+parent(elise, greg)
+parent(elise, helen)
+parent(bob, carl)
+parent(bob, diane)
+parent(bob, elise)
+parent(carl, jimmy)
+parent(carl, kendra)
+parent(fred, greg)
+parent(fred, helen)
+>>>
+
+brother(jimmy, kendra) .
+sister(helen, greg) .
+sibling(A, B) :- (brother(A, B) | sister(A, B))
+sibling(A, B)?
+>>>
+sibling(jimmy, kendra)
+sibling(helen, greg)
+>>>
+
+
+brother(carl, elise) .
+uncle(A, C) :- (brother(A, B) & parent(B, C))
+uncle(A, C) ?
+>>>
+uncle(carl, greg)
+uncle(carl, helen)
+>>>
+
+
+---------------
+Future work
+grandparent(A, C) :- (parent(A, B) & parent(B, C))
+grandparent(A, B) ?
+>>>
+grandparent(alice, greg)
+grandparent(alice, helen)
+>>>
+
+cat(elise, meow) .
+hc(A, B) :- (cat(B, A) | (parent(C, B) & married(A, B)))
+hc(A, B) ?
+>>>
+hc(meow, elise)
+hc(ivan, carl)
+>>>
+
+hc2(A, B) :- ((cat(B, A) & parent(C, B)) | married(A, B))
+*argument expansion not implemented so not all results are returned.
+hc2(A, B) ?
+>>>
+hc2(meow, elise)
+hc2(alice, bob)
+hc2(ivan, carl)
+hc2(elise, fred)
+>>>

@@ -1,5 +1,6 @@
 ############################################################
 # Logic interpreter
+#Lindsey & Sophie
 #
 
 import sys
@@ -42,20 +43,22 @@ def match_clause(q, var_order, facts):
         final_results = []
         messy_result = (match_clause(q[0], var_order, facts)) + (match_clause(q[2], var_order, facts))
         for item in messy_result:
+            if type(item) == list:
+                final_results.append(item)
             temp_term = []
             for v in var_order:
-                temp_term.append(item[v])
-            final_results.append(temp_term)
+                if v in item:
+                    temp_term.append(item[v])
+            if len(temp_term) == len(var_order):
+                final_results.append(temp_term)
         return final_results
 
     elif q[1] == "&":
         final_results = []
         ret1 = match_clause(q[0], var_order, facts)
-
         for r in ret1:
             q2_cpy = list(q[2])
             q2_cpy = [r[x] if x in r else x for x in q2_cpy]
-
             ret2 = match_clause(q2_cpy, var_order, facts)
             for r2 in ret2:
                 res = merge_two_dicts(r, r2)
@@ -90,7 +93,6 @@ def match_rules(query, facts, rules):
 
     if matching_rule_clauses:
         for clause in matching_rule_clauses:
-
             var_order = clause[0]
             queries = clause[1]
 
@@ -157,7 +159,7 @@ def parse_imp (input):
 
     ######VALUES
     pVARIABLE = Word(varChars, stringChars + varChars)
-    pSTRING = Word(stringChars)
+    pSTRING = Word(stringChars, stringChars + varChars)
 
     pLIT = Forward()
     pTERM = Forward()
@@ -192,8 +194,8 @@ def parse_imp (input):
 
 class Shell():
     def __init__(self):
-        self.facts = {'married': [['alice', 'bob'], ['ivan', 'carl'], ['elise', 'fred']], 'parent': [['alice', 'carl'], ['alice', 'diane'], ['alice', 'elise'], ['ivan', 'jimmy'], ['ivan', 'kendra'], ['elise', 'greg'], ['elise', 'helen']]}
-        self.rules = {}
+        self.facts = {'married': [['alice', 'bob'], ['ivan', 'carl'], ['elise', 'fred']], 'parent': [['alice', 'carl'], ['alice', 'diane'], ['alice', 'elise'], ['ivan', 'jimmy'], ['ivan', 'kendra'], ['elise', 'greg'], ['elise', 'helen']], 'cat': [['elise', 'meow']]}
+        self.rules = {'chp': [(['A', 'B'], ((('cat', 'B', 'A'), '&', ('parent', 'C', 'B')), '|', ('married', 'A', 'B')))]}
 
     def shell_imp (self):
         # A simple shell
